@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-main: #F4F5F2;
+    --text-main: #17201C;
+    --text-muted: #59625D;
+    --brand-dark: #163C32;
+    --brand-gold: #A7833B;
+    --border-color: #D8DCD6;
+  }
+
+  body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    letter-spacing: -0.011em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Universal reset for strict sharp-corner design */
+  * {
+    border-radius: 0px !important;
+  }
+}
+
+/* Custom crisp border & data table utilities */
+.border-data {
+  border: 1px solid #D8DCD6;
+}
+
+.table-dense th {
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+
+.table-dense td {
+  padding-top: 0.65rem;
+  padding-bottom: 0.65rem;
+}
+
+/* Scrollbar styling for enterprise table views */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #EDEFEA;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #BCC3BA;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #59625D;
+}
