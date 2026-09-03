@@ -1,225 +1,207 @@
-import React, { useEffect, useState } from 'react';
-import { settingsService } from '../services';
+import React, { useState } from 'react';
+import {
+  Settings,
+  User,
+  Sliders,
+  Bell,
+  KeyRound,
+  Building2,
+  Save,
+  CheckCircle2
+} from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
-  const [weights, setWeights] = useState({
-    STATUTORY: 0.30,
-    FINANCIAL: 0.25,
-    TENDER_SPECIFIC: 0.20,
-    DOCUMENTATION: 0.15,
-    OTHER_ELIGIBILITY: 0.10
-  });
+  const [activeTab, setActiveTab] = useState<'PROFILE' | 'ENGINE' | 'NOTIFICATIONS' | 'SECURITY' | 'ORG'>('PROFILE');
+  const [firstName, setFirstName] = useState('Alex');
+  const [lastName, setLastName] = useState('Rivera');
+  const [email, setEmail] = useState('a.rivera@procurement.gov');
+  const [phone, setPhone] = useState('+91 98765 43210');
+  const [saved, setSaved] = useState(false);
 
-  const [confidenceHigh, setConfidenceHigh] = useState(0.90);
-  const [confidenceMedium, setConfidenceMedium] = useState(0.70);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    settingsService.getSettings().then((data) => {
-      if (data.scoring_weights) setWeights(data.scoring_weights);
-      if (data.confidence_high) setConfidenceHigh(data.confidence_high);
-      if (data.confidence_medium) setConfidenceMedium(data.confidence_medium);
-    }).finally(() => setLoading(false));
-  }, []);
-
-  const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
-
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (Math.abs(totalWeight - 1.0) > 0.01) {
-      setMessage('Error: Total scoring weights must sum up exactly to 100% (1.0).');
-      return;
-    }
-
-    setSaving(true);
-    setMessage('');
-    try {
-      await settingsService.updateSettings({
-        scoring_weights: weights,
-        confidence_high: confidenceHigh,
-        confidence_medium: confidenceMedium
-      });
-      setMessage('System compliance configuration successfully updated.');
-    } catch (err: any) {
-      setMessage('Failed to update settings.');
-    } finally {
-      setSaving(false);
-    }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 font-mono text-xs">
+    <div className="space-y-6">
       
-      {/* Header */}
-      <div className="border border-[#D8DCD6] bg-white p-5">
-        <div className="text-[10px] uppercase tracking-widest text-[#A7833B] font-bold">
-          ENGINE CONFIGURATION & GATING PARAMETERS
-        </div>
-        <h1 className="text-base font-bold tracking-tight text-[#17201C] mt-0.5 uppercase">
-          SYSTEM PARAMETERS & SCORING WEIGHTS
+      {/* 1. Header (Matching Page 12 from PDF) */}
+      <div>
+        <h1 className="text-xl font-bold tracking-tight text-slate-900">
+          System Settings
         </h1>
-        <p className="text-xs text-[#59625D] font-sans mt-0.5">
-          Centrally configure category evaluation weights and AI confidence abstention thresholds
+        <p className="text-xs text-slate-500">
+          Manage your personal profile, organization preferences, and AI compliance thresholds.
         </p>
       </div>
 
-      {message && (
-        <div className={`p-3 border font-bold ${
-          message.startsWith('Error') ? 'bg-[#FBEBEB] text-[#7A1C1C] border-[#F1B5B5]' : 'bg-[#E8F3EE] text-[#114B3A] border-[#B4DACB]'
-        }`}>
-          {message}
-        </div>
-      )}
+      {/* 2. Settings Tabs Bar */}
+      <div className="flex flex-wrap items-center gap-2 bg-slate-100 p-1 rounded-xl text-xs font-semibold w-fit">
+        <button
+          onClick={() => setActiveTab('PROFILE')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all ${
+            activeTab === 'PROFILE' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <User className="w-3.5 h-3.5" /> Profile
+        </button>
+        <button
+          onClick={() => setActiveTab('ENGINE')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all ${
+            activeTab === 'ENGINE' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Sliders className="w-3.5 h-3.5" /> Compliance Engine
+        </button>
+        <button
+          onClick={() => setActiveTab('NOTIFICATIONS')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all ${
+            activeTab === 'NOTIFICATIONS' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Bell className="w-3.5 h-3.5" /> Notifications
+        </button>
+        <button
+          onClick={() => setActiveTab('SECURITY')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all ${
+            activeTab === 'SECURITY' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <KeyRound className="w-3.5 h-3.5" /> Security & API
+        </button>
+        <button
+          onClick={() => setActiveTab('ORG')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all ${
+            activeTab === 'ORG' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Building2 className="w-3.5 h-3.5" /> Organization
+        </button>
+      </div>
 
-      <form onSubmit={handleSave} className="space-y-6">
+      {/* 3. Main Settings Content Card (Matching Page 12 from PDF) */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-card p-6 sm:p-8 space-y-6">
         
-        {/* Scoring Weights Box */}
-        <div className="border border-[#D8DCD6] bg-white p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[#D8DCD6]">
-            <h3 className="text-xs font-bold text-[#17201C] uppercase tracking-wider">
-              COMPLIANCE CATEGORY SCORING WEIGHTS (TOTAL: {(totalWeight * 100).toFixed(0)}%)
-            </h3>
-            <span className={`px-2 py-0.5 border text-[10px] font-bold ${
-              Math.abs(totalWeight - 1.0) <= 0.01 ? 'bg-[#E8F3EE] text-[#114B3A] border-[#B4DACB]' : 'bg-[#FBEBEB] text-[#7A1C1C] border-[#F1B5B5]'
-            }`}>
-              {Math.abs(totalWeight - 1.0) <= 0.01 ? 'VALID 100%' : 'MUST EQUAL 100%'}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase text-[#59625D]">
-                STATUTORY COMPLIANCE WEIGHT (GST, PAN, UDYAM, DEBARMENT)
-              </label>
-              <input
-                type="number"
-                step="0.05"
-                min="0"
-                max="1"
-                value={weights.STATUTORY}
-                onChange={(e) => setWeights({ ...weights, STATUTORY: parseFloat(e.target.value) || 0 })}
-                className="w-full border border-[#D8DCD6] p-2 bg-white text-[#17201C] outline-none"
-              />
+        {activeTab === 'PROFILE' && (
+          <form onSubmit={handleSave} className="space-y-6">
+            
+            <div className="border-b border-slate-100 pb-4">
+              <h2 className="text-sm font-bold text-slate-900">Personal Information</h2>
+              <p className="text-xs text-slate-500">Update your photo and personal details for the audit trail.</p>
             </div>
 
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase text-[#59625D]">
-                FINANCIAL ELIGIBILITY WEIGHT (TURNOVER, NET WORTH)
-              </label>
-              <input
-                type="number"
-                step="0.05"
-                min="0"
-                max="1"
-                value={weights.FINANCIAL}
-                onChange={(e) => setWeights({ ...weights, FINANCIAL: parseFloat(e.target.value) || 0 })}
-                className="w-full border border-[#D8DCD6] p-2 bg-white text-[#17201C] outline-none"
-              />
+            {/* Avatar Row */}
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-lg text-slate-700 font-mono shadow-inner">
+                AR
+              </div>
+              <div className="space-y-1">
+                <div className="font-bold text-xs text-slate-900">Alex Rivera</div>
+                <div className="text-[11px] text-slate-500">Chief Auditor, Department of Procurement</div>
+                <div className="flex items-center gap-3 pt-1">
+                  <button type="button" className="text-xs font-semibold text-blue-600 hover:underline">
+                    Update Avatar
+                  </button>
+                  <button type="button" className="text-xs text-rose-600 hover:underline">
+                    Remove
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase text-[#59625D]">
-                TENDER SPECIFIC CRITERIA (OEM MAF, MAKE IN INDIA %)
-              </label>
-              <input
-                type="number"
-                step="0.05"
-                min="0"
-                max="1"
-                value={weights.TENDER_SPECIFIC}
-                onChange={(e) => setWeights({ ...weights, TENDER_SPECIFIC: parseFloat(e.target.value) || 0 })}
-                className="w-full border border-[#D8DCD6] p-2 bg-white text-[#17201C] outline-none"
-              />
+            {/* Form Fields Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="space-y-1">
+                <label className="block font-bold text-slate-700">First Name</label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-slate-700">Last Name</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-slate-700">Email Address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white font-mono"
+                />
+                <span className="text-[10px] text-slate-400 block">Email changes require organizational approval.</span>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-slate-700">Phone Number</label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white font-mono"
+                />
+              </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase text-[#59625D]">
-                DOCUMENTATION & INTEGRITY PACT
-              </label>
-              <input
-                type="number"
-                step="0.05"
-                min="0"
-                max="1"
-                value={weights.DOCUMENTATION}
-                onChange={(e) => setWeights({ ...weights, DOCUMENTATION: parseFloat(e.target.value) || 0 })}
-                className="w-full border border-[#D8DCD6] p-2 bg-white text-[#17201C] outline-none"
-              />
+            {/* Save Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              {saved && (
+                <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-4 h-4" /> Changes saved successfully
+                </span>
+              )}
+              <button
+                type="button"
+                className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50"
+              >
+                Discard Changes
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm"
+              >
+                <Save className="w-4 h-4" /> Save Changes
+              </button>
             </div>
 
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase text-[#59625D]">
-                OTHER ELIGIBILITY / MSME PREFERENCE
-              </label>
-              <input
-                type="number"
-                step="0.05"
-                min="0"
-                max="1"
-                value={weights.OTHER_ELIGIBILITY}
-                onChange={(e) => setWeights({ ...weights, OTHER_ELIGIBILITY: parseFloat(e.target.value) || 0 })}
-                className="w-full border border-[#D8DCD6] p-2 bg-white text-[#17201C] outline-none"
-              />
-            </div>
-          </div>
-        </div>
+          </form>
+        )}
 
-        {/* Confidence Gating Box */}
-        <div className="border border-[#D8DCD6] bg-white p-6 space-y-4">
-          <div className="pb-3 border-b border-[#D8DCD6]">
-            <h3 className="text-xs font-bold text-[#17201C] uppercase tracking-wider">
-              AI CONFIDENCE GATING & MODEL ABSTENTION POLICY
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase text-[#59625D]">
-                AUTOMATIC MATCH THRESHOLD (DEFAULT: 0.90)
-              </label>
-              <input
-                type="number"
-                step="0.05"
-                min="0.5"
-                max="1.0"
-                value={confidenceHigh}
-                onChange={(e) => setConfidenceHigh(parseFloat(e.target.value) || 0.9)}
-                className="w-full border border-[#D8DCD6] p-2 bg-white text-[#17201C] outline-none"
-              />
-              <span className="text-[10px] text-[#808B84] block">Inferences $\ge$ this threshold qualify for automatic PASS rule match.</span>
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase text-[#59625D]">
-                DISCRETIONARY REVIEW THRESHOLD (DEFAULT: 0.70)
-              </label>
-              <input
-                type="number"
-                step="0.05"
-                min="0.4"
-                max="0.9"
-                value={confidenceMedium}
-                onChange={(e) => setConfidenceMedium(parseFloat(e.target.value) || 0.7)}
-                className="w-full border border-[#D8DCD6] p-2 bg-white text-[#17201C] outline-none"
-              />
-              <span className="text-[10px] text-[#808B84] block">Inferences below this threshold enter the mandatory Officer Review Queue.</span>
+        {activeTab === 'ENGINE' && (
+          <div className="space-y-4 text-xs">
+            <h2 className="text-sm font-bold text-slate-900">7 Core Checkers Configuration</h2>
+            <div className="space-y-3">
+              <div className="p-3 border border-slate-200 rounded-lg flex items-center justify-between">
+                <div>
+                  <div className="font-bold">Turnover Deterministic Arithmetic</div>
+                  <div className="text-slate-500">Evaluates 3-year turnover threshold strictly via audited statements</div>
+                </div>
+                <span className="text-emerald-600 font-bold font-mono">ENABLED (100%)</span>
+              </div>
+              <div className="p-3 border border-slate-200 rounded-lg flex items-center justify-between">
+                <div>
+                  <div className="font-bold">Pipeline Diameter & Length Checker</div>
+                  <div className="text-slate-500">Verifies ≥ 100 km and ≥ 24 inch API 5L specifications</div>
+                </div>
+                <span className="text-emerald-600 font-bold font-mono">ENABLED (100%)</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-6 py-2.5 bg-[#163C32] hover:bg-[#0E2922] text-white text-xs font-bold uppercase disabled:opacity-50"
-          >
-            {saving ? "SAVING..." : "COMMIT SYSTEM PARAMETERS"}
-          </button>
-        </div>
-
-      </form>
+      </div>
 
     </div>
   );

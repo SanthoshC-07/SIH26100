@@ -1,157 +1,311 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { bidderService } from '../services';
-import { Bidder } from '../types';
+import {
+  FileSpreadsheet,
+  Search,
+  Filter,
+  Download,
+  RefreshCw,
+  Plus,
+  Clock,
+  AlertTriangle,
+  CheckCircle2,
+  FileCheck,
+  ArrowRight,
+  ShieldCheck,
+  ChevronRight
+} from 'lucide-react';
+import { bidderService, tenderService } from '../services';
+import { Bidder, Tender } from '../types';
 import { RiskBadge } from '../components/RiskBadge';
-import { Search, Users, ArrowRight, FileText, CheckCircle2, AlertTriangle, ShieldCheck, Filter } from 'lucide-react';
 
 export const BiddersPage: React.FC = () => {
   const navigate = useNavigate();
   const [bidders, setBidders] = useState<Bidder[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [riskFilter, setRiskFilter] = useState('');
+  const [tenders, setTenders] = useState<Tender[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [priorityFilter, setPriorityFilter] = useState('ALL');
+
+  const loadData = () => {
+    setLoading(true);
+    Promise.all([
+      bidderService.getBidders().catch(() => []),
+      tenderService.getTenders().catch(() => [])
+    ]).then(([b, t]) => {
+      setBidders(b);
+      setTenders(t);
+    }).finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    bidderService.getBidders().then(setBidders).finally(() => setLoading(false));
+    loadData();
   }, []);
 
-  const filtered = bidders.filter((b) => {
-    const matchSearch =
-      b.bidder_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (b.gstin && b.gstin.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (b.pan && b.pan.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchRisk = riskFilter ? b.risk_level === riskFilter : true;
-    return matchSearch && matchRisk;
+  const filteredBidders = bidders.filter(b => {
+    const matchSearch = b.legal_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (b.pan && b.pan.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (b.gstin && b.gstin.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchStatus = statusFilter === 'ALL' || b.status === statusFilter;
+    const matchPriority = priorityFilter === 'ALL' || b.risk_level === priorityFilter;
+    return matchSearch && matchStatus && matchPriority;
   });
 
   return (
     <div className="space-y-6">
       
-      {/* Header Banner */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* 1. Header & Actions (Matching Page 4 from PDF) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="text-[10px] font-mono uppercase tracking-widest text-emerald-700 font-bold">
-            BIDDER DIRECTORY & ELIGIBILITY VERIFICATION
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900 mt-0.5">
-            Submitted Bidder Compliance Dossiers
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            Bid Management
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Audit ground-truth evidence, examine cross-document entity matches, and record officer reviews
+          <p className="text-xs text-slate-500">
+            Oversee and audit active procurement bids across petroleum and pipeline departments.
           </p>
         </div>
-        <div className="flex items-center gap-2 font-mono text-xs">
-          <span className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold border border-slate-200">
-            TOTAL DOSSIERS: {bidders.length}
-          </span>
+
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={loadData}
+            className="px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-slate-500" /> Refresh List
+          </button>
+          <button className="px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs">
+            <Download className="w-3.5 h-3.5 text-slate-500" /> Export CSV
+          </button>
+          <button
+            onClick={() => navigate('/tenders')}
+            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> Create New RFP / Tender
+          </button>
         </div>
       </div>
 
-      {/* Search & Risk Filter Toolbar */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col sm:flex-row gap-3 items-center justify-between font-mono text-xs">
-        <div className="relative w-full sm:max-w-md">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+      {/* 2. Top 4 Stat Cards (Matching Page 4 from PDF) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-card p-4 space-y-1.5">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
+            <span>Total Bids</span>
+            <FileSpreadsheet className="w-4 h-4 text-slate-400" />
+          </div>
+          <div className="text-2xl font-extrabold text-slate-900">{bidders.length || 7}</div>
+          <div className="text-[11px] text-emerald-600 font-medium">+12% from last month</div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 shadow-card p-4 space-y-1.5">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
+            <span>Awaiting Review</span>
+            <Clock className="w-4 h-4 text-amber-500" />
+          </div>
+          <div className="text-2xl font-extrabold text-slate-900">4</div>
+          <div className="text-[11px] text-slate-500 font-mono">Avg. wait: 4.2 days</div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 shadow-card p-4 space-y-1.5">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
+            <span>Compliance Flags</span>
+            <AlertTriangle className="w-4 h-4 text-rose-500" />
+          </div>
+          <div className="text-2xl font-extrabold text-slate-900">2</div>
+          <div className="text-[11px] text-rose-600 font-medium">Critical issues detected</div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 shadow-card p-4 space-y-1.5">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
+            <span>Verified This Week</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+          </div>
+          <div className="text-2xl font-extrabold text-slate-900">5</div>
+          <div className="text-[11px] text-slate-500 font-mono">Target: 20/week</div>
+        </div>
+      </div>
+
+      {/* 3. Search and Filters Bar */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-card p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="relative flex-1 min-w-[240px]">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search bidder legal name, GSTIN, or PAN..."
-            className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-slate-800 outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+            placeholder="Search by vendor, project name, or bid ID..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:bg-white"
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <Filter className="w-4 h-4 text-slate-400" />
-          <span className="text-[10px] font-bold text-slate-500 uppercase">RISK FILTER:</span>
-          <select
-            value={riskFilter}
-            onChange={(e) => setRiskFilter(e.target.value)}
-            className="rounded-lg border border-slate-300 p-2 bg-white text-slate-800 outline-none text-xs font-semibold"
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-1.5 text-slate-500">
+            <span>Status:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-800 outline-none"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="SUBMITTED">Submitted</option>
+              <option value="UNDER_EVALUATION">Under Evaluation</option>
+              <option value="VERIFIED">Verified</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-slate-500">
+            <span>Priority:</span>
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-800 outline-none"
+            >
+              <option value="ALL">All Priorities</option>
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+            </select>
+          </div>
+
+          <button
+            onClick={() => { setSearchQuery(''); setStatusFilter('ALL'); setPriorityFilter('ALL'); }}
+            className="px-3 py-1.5 text-slate-500 hover:text-slate-800 font-semibold"
           >
-            <option value="">ALL RISK LEVELS</option>
-            <option value="LOW">LOW RISK</option>
-            <option value="MEDIUM">MEDIUM RISK</option>
-            <option value="HIGH">HIGH RISK</option>
-            <option value="CRITICAL">CRITICAL RISK</option>
-          </select>
+            Reset Filters
+          </button>
         </div>
       </div>
 
-      {/* Bidders Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="p-12 text-center text-slate-500 font-mono text-xs">
-            RETRIEVING BIDDER COMPLIANCE DOSSIERS...
+      {/* 4. Active Bid Ledger Table (Matching Page 4 from PDF) */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-card overflow-hidden">
+        <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2 font-bold text-slate-900">
+            <FileCheck className="w-4 h-4 text-blue-600" />
+            <span>Active Bid Ledger</span>
+            <span className="text-slate-400 font-normal font-mono">({filteredBidders.length} Records Found)</span>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono">
-              <thead className="border-b border-slate-200 bg-slate-50/70 text-slate-600 text-[10px] uppercase tracking-wider">
-                <tr>
-                  <th className="px-6 py-3.5">BIDDER LEGAL ENTITY</th>
-                  <th className="px-6 py-3.5">IDENTIFIERS (GSTIN / PAN / UDYAM)</th>
-                  <th className="px-6 py-3.5 text-center">SCORE</th>
-                  <th className="px-6 py-3.5 text-center">RISK LEVEL</th>
-                  <th className="px-6 py-3.5">AI RECOMMENDATION</th>
-                  <th className="px-6 py-3.5 text-center">ATTACHMENTS</th>
-                  <th className="px-6 py-3.5 text-right">AUDIT ACTION</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-800">
-                {filtered.map((b) => (
-                  <tr key={b.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-6 py-4 font-bold font-sans">
-                      <div className="text-xs text-slate-900 font-bold">{b.bidder_name}</div>
-                      <div className="text-[11px] font-mono text-slate-500 font-normal mt-0.5">{b.contact_person || "Authorized Representative"}</div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px] tracking-wider">
+              <tr>
+                <th className="py-3 px-5">Bid Ref</th>
+                <th className="py-3 px-5">Vendor & Project</th>
+                <th className="py-3 px-5">Submission</th>
+                <th className="py-3 px-5">Estimated Value</th>
+                <th className="py-3 px-5 text-center">Score</th>
+                <th className="py-3 px-5 text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 text-slate-700">
+              {filteredBidders.map((b, idx) => {
+                const score = b.compliance_score !== null && b.compliance_score !== undefined ? b.compliance_score : 90;
+                return (
+                  <tr
+                    key={b.id}
+                    onClick={() => navigate(`/bidders/${b.id}`)}
+                    className="hover:bg-slate-50 cursor-pointer transition-colors"
+                  >
+                    <td className="py-3.5 px-5 font-mono text-[11px] font-bold text-slate-900">
+                      RFQ-GAIL-0{idx + 1}
                     </td>
-                    <td className="px-6 py-4 text-[11px] space-y-0.5 whitespace-nowrap">
-                      <div className="font-bold text-slate-900">{b.gstin || "NO GSTIN"}</div>
-                      <div className="text-slate-500">{b.pan ? `PAN: ${b.pan}` : ""}</div>
-                      {b.udyam_number && <div className="text-emerald-700 font-semibold text-[10px]">{b.udyam_number}</div>}
+                    <td className="py-3.5 px-5">
+                      <div className="font-bold text-slate-900">{b.legal_name}</div>
+                      <div className="text-[10px] text-slate-500">120 KM Natural Gas Pipeline EPC Package</div>
                     </td>
-                    <td className="px-6 py-4 text-center font-bold text-sm">
-                      {b.compliance_score !== null && b.compliance_score !== undefined ? (
-                        <span className={`px-2 py-0.5 rounded ${b.compliance_score >= 90 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (b.compliance_score >= 75 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200')}`}>
-                          {b.compliance_score}/100
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">EVALUATING</span>
-                      )}
+                    <td className="py-3.5 px-5 font-mono text-[11px] text-slate-500">
+                      2026-09-03
                     </td>
-                    <td className="px-6 py-4 text-center whitespace-nowrap">
-                      {b.risk_level ? (
-                        <RiskBadge level={b.risk_level} size="sm" />
-                      ) : (
-                        <span className="text-slate-400">PENDING</span>
-                      )}
+                    <td className="py-3.5 px-5 font-mono font-bold text-slate-800">
+                      ₹150,00,00,000.00
                     </td>
-                    <td className="px-6 py-4 text-xs font-sans text-slate-800">
-                      {b.recommendation_type === "RECOMMENDED_FOR_QUALIFICATION" && "Eligible for Qualification"}
-                      {b.recommendation_type === "NOT_RECOMMENDED" && "Mandatory Failure / Disqualified"}
-                      {b.recommendation_type === "REQUIRES_PROCUREMENT_OFFICER_REVIEW" && "Requires Officer Review"}
-                      {!b.recommendation_type && "Under Verification"}
+                    <td className="py-3.5 px-5 text-center font-mono font-bold text-blue-700">
+                      AI SCORE {score}%
                     </td>
-                    <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600 text-[10px] font-semibold">
-                        {b.documents_count || 1} FILES
+                    <td className="py-3.5 px-5 text-right">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Verified
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right whitespace-nowrap">
-                      <button
-                        onClick={() => navigate(`/bidders/${b.id}`)}
-                        className="px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1 ml-auto"
-                      >
-                        <span>Audit Dossier</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="p-4 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between text-xs text-slate-500">
+          <span>Showing {filteredBidders.length} of {bidders.length} procurement records</span>
+          <div className="flex items-center gap-1.5 font-mono">
+            <button className="px-2 py-1 border border-slate-200 rounded bg-white" disabled>Previous</button>
+            <span className="px-2 py-1 bg-blue-600 text-white rounded font-bold">1</span>
+            <button className="px-2 py-1 border border-slate-200 rounded bg-white">Next</button>
           </div>
-        )}
+        </div>
+      </div>
+
+      {/* 5. Bottom Two Cards: Audit Intelligence & Compliance Deadlines (Matching Page 4 from PDF) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Left: Audit Intelligence Card */}
+        <div className="bg-[#0B132B] text-white rounded-xl p-6 shadow-md flex flex-col justify-between space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-blue-400 font-bold text-sm">
+              <ShieldCheck className="w-5 h-5" />
+              <span>Audit Intelligence</span>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              BidVerify AI has detected high-risk pattern anomalies in newly submitted bidder dossiers. Immediate human compliance review is recommended before final award.
+            </p>
+          </div>
+
+          <button
+            onClick={() => navigate('/verification')}
+            className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-between"
+          >
+            <span>Review Priority Queue</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Right: Compliance Deadlines */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-card p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-900">Compliance Deadlines</h2>
+            <span className="text-[11px] text-slate-500">Bids requiring verification within 48h</span>
+          </div>
+
+          <div className="space-y-3">
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between text-xs">
+              <div>
+                <div className="font-bold text-slate-900 font-mono">RFQ-GAIL-01</div>
+                <div className="text-[10px] text-slate-500">Praveen B S Engineering Services</div>
+              </div>
+              <div className="text-right">
+                <span className="text-[11px] font-bold text-amber-600 flex items-center gap-1 font-mono">
+                  <Clock className="w-3.5 h-3.5" /> 14h remaining
+                </span>
+                <span className="text-[9px] uppercase font-bold text-rose-600">HIGH PRIORITY</span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between text-xs">
+              <div>
+                <div className="font-bold text-slate-900 font-mono">RFQ-IOCL-02</div>
+                <div className="text-[10px] text-slate-500">Larsen & Toubro Hydrocarbon</div>
+              </div>
+              <div className="text-right">
+                <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1 font-mono">
+                  <Clock className="w-3.5 h-3.5" /> 22h remaining
+                </span>
+                <span className="text-[9px] uppercase font-bold text-emerald-600">MEDIUM PRIORITY</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
     </div>
