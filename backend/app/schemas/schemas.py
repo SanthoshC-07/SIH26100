@@ -314,6 +314,9 @@ class BidResponse(BidBase):
     updated_at: Optional[datetime] = None
 
 # ----------------- BIDDER SCHEMAS -----------------
+import re
+from pydantic import field_validator, model_validator
+
 class BidderBase(BaseModel):
     tender_id: str
     legal_name: Optional[str] = None
@@ -335,7 +338,39 @@ class BidderBase(BaseModel):
     status: str = "SUBMITTED"
 
 class BidderCreate(BidderBase):
-    pass
+    @field_validator("pan", mode="before")
+    @classmethod
+    def validate_pan_format(cls, v):
+        if not v:
+            return None
+        v_clean = str(v).strip().upper()
+        if not v_clean:
+            return None
+        if not re.match(r"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", v_clean):
+            raise ValueError("PAN format is invalid (expected 5 uppercase letters, 4 digits, 1 uppercase letter, e.g. BSZPP1234K)")
+        return v_clean
+
+    @field_validator("gstin", mode="before")
+    @classmethod
+    def validate_gstin_format(cls, v):
+        if not v:
+            return None
+        v_clean = str(v).strip().upper()
+        if not v_clean:
+            return None
+        if not re.match(r"^[0-9]{2}[A-Z0-9]{10}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1}$", v_clean):
+            raise ValueError("GSTIN format is invalid (expected 15 alphanumeric characters matching state and entity format, e.g. 29MOCKP1234M1Z5)")
+        return v_clean
+
+    @model_validator(mode="after")
+    def validate_name_presence(self):
+        name = self.legal_name or self.bidder_name
+        if not name or not name.strip():
+            raise ValueError("Company / Legal name is required to register a bidder.")
+        self.legal_name = name.strip()
+        self.bidder_name = name.strip()
+        return self
+
 
 
 class BidderResponse(BidderBase):

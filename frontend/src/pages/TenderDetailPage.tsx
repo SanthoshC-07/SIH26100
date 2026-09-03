@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { tenderService, bidderService } from '../services';
+import { tenderService, bidderService, documentService } from '../services';
 import { Tender, Requirement, Bidder } from '../types';
 import { RiskBadge } from '../components/RiskBadge';
 
@@ -35,23 +35,39 @@ export const TenderDetailPage: React.FC = () => {
 
   const handleCreateBidder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || !newBidderName.trim()) return;
+    if (!id || !newBidderName.trim()) {
+      setAddError("Company / Legal name is required.");
+      return;
+    }
     setCreatingBidder(true);
     setAddError('');
     try {
-      const created = await bidderService.createBidder({
-        tender_id: id,
-        legal_name: newBidderName.trim(),
-        bidder_name: newBidderName.trim(),
-        pan: newBidderPan.trim() || undefined,
-        gstin: newBidderGstin.trim() || undefined
-      });
+      let created: Bidder;
 
-      // Upload any selected documents
       if (selectedFiles && selectedFiles.length > 0) {
-        for (let i = 0; i < selectedFiles.length; i++) {
-          await documentService.uploadBidderDocument(created.id, selectedFiles[i], "BIDDER_SUBMISSION");
+        // One-shot atomic creation with multiple dossier documents
+        const formData = new FormData();
+        formData.append('tender_id', id);
+        formData.append('legal_name', newBidderName.trim());
+        if (newBidderPan.trim()) {
+          formData.append('pan', newBidderPan.trim().toUpperCase());
         }
+        if (newBidderGstin.trim()) {
+          formData.append('gstin', newBidderGstin.trim().toUpperCase());
+        }
+        for (let i = 0; i < selectedFiles.length; i++) {
+          formData.append('documents', selectedFiles[i]);
+        }
+        created = await bidderService.createBidderWithDocuments(formData);
+      } else {
+        // Standard JSON creation
+        created = await bidderService.createBidder({
+          tender_id: id,
+          legal_name: newBidderName.trim(),
+          bidder_name: newBidderName.trim(),
+          pan: newBidderPan.trim().toUpperCase() || undefined,
+          gstin: newBidderGstin.trim().toUpperCase() || undefined
+        });
       }
 
       setBidders([created, ...bidders]);
@@ -62,8 +78,21 @@ export const TenderDetailPage: React.FC = () => {
       setShowAddBidder(false);
       navigate(`/bidders/${created.id}`);
     } catch (err: any) {
-      console.error(err);
-      setAddError(err.response?.data?.detail || "Failed to add bidder. Please check inputs.");
+      console.error("Bidder creation error:", err);
+      let errorMsg = "Failed to add bidder. Please verify the input values.";
+      if (err.response?.status === 500) {
+        errorMsg = "Server error while creating bidder. Check backend logs.";
+      } else if (err.response?.data?.detail) {
+        const detail = err.response.data.detail;
+        if (typeof detail === 'string') {
+          errorMsg = detail;
+        } else if (typeof detail === 'object' && detail.message) {
+          errorMsg = detail.message;
+        } else if (Array.isArray(detail) && detail.length > 0) {
+          errorMsg = detail.map((d: any) => d.msg || JSON.stringify(d)).join(", ").replace(/Value error, /g, "");
+        }
+      }
+      setAddError(errorMsg);
     } finally {
       setCreatingBidder(false);
     }

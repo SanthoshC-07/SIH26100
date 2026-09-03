@@ -17,6 +17,13 @@ export const bidderService = {
     return res.data;
   },
 
+  createBidderWithDocuments: async (formData: FormData): Promise<Bidder> => {
+    const res = await api.post('/bidders/with-documents', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return res.data;
+  },
+
   verifyBidder: async (bidderId: string): Promise<any> => {
     const res = await api.post(`/bidders/${bidderId}/verify`);
     return res.data;

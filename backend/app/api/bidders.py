@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 import shutil
 from typing import List, Optional
@@ -28,6 +29,134 @@ from app.core.logging_config import logger
 
 router = APIRouter(prefix="/bidders", tags=["Bidders"])
 
+def validate_pan_format_raw(pan: Optional[str]) -> Optional[str]:
+    if not pan:
+        return None
+    pan_clean = pan.strip().upper()
+    if not pan_clean:
+        return None
+    if not re.match(r"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", pan_clean):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "BIDDER_VALIDATION_ERROR",
+                "message": f"PAN format '{pan_clean}' is invalid. Expected format: 5 letters, 4 digits, 1 letter (e.g. BSZPP1234K).",
+                "field": "pan"
+            }
+        )
+    return pan_clean
+
+def validate_gstin_format_raw(gstin: Optional[str]) -> Optional[str]:
+    if not gstin:
+        return None
+    gstin_clean = gstin.strip().upper()
+    if not gstin_clean:
+        return None
+    if not re.match(r"^[0-9]{2}[A-Z0-9]{10}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1}$", gstin_clean):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "BIDDER_VALIDATION_ERROR",
+                "message": f"GSTIN format '{gstin_clean}' is invalid. Expected 15-character statutory format (e.g. 29MOCKP1234M1Z5).",
+                "field": "gstin"
+            }
+        )
+    return gstin_clean
+
+def process_and_save_document(
+    db: Session,
+    bidder: Bidder,
+    file: UploadFile,
+    document_type: str,
+    user_id: Optional[str]
+) -> Document:
+    original_filename = file.filename or "bidder_document.pdf"
+    file_ext = os.path.splitext(original_filename)[1].lower()
+
+    if file_ext not in settings.ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "INVALID_FILE_TYPE",
+                "message": f"Invalid file extension '{file_ext}'. Allowed types: {', '.join(settings.ALLOWED_EXTENSIONS)}",
+                "field": "file"
+            }
+        )
+
+    safe_filename = f"bidder_{bidder.id}_{uuid.uuid4().hex[:8]}{file_ext}"
+    dest_path = os.path.join(settings.UPLOAD_DIR, safe_filename)
+
+    with open(dest_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    file_size = os.path.getsize(dest_path)
+
+    # Decoupled text and OCR extraction (never fail bidder creation on extraction error)
+    extracted = {
+        "full_text": "",
+        "pages": [{"page_number": 1, "text": "", "has_tables": False, "ocr_applied": False, "confidence": 1.0}],
+        "page_count": 1,
+        "is_scanned": False,
+        "extraction_method": "PDF_TEXT"
+    }
+    try:
+        extracted = DocumentExtractor.extract_text_and_tables(dest_path)
+    except Exception as e:
+        logger.warning(f"Decoupled OCR/Text extraction warning for {dest_path}: {e}")
+
+    doc = Document(
+        bidder_id=bidder.id,
+        tender_id=bidder.tender_id,
+        document_name=original_filename,
+        original_filename=original_filename,
+        document_type=document_type,
+        file_path=dest_path,
+        file_size=file_size,
+        mime_type=file.content_type or "application/pdf",
+        is_scanned=extracted.get("is_scanned", False),
+        extraction_method=extracted.get("extraction_method", "PDF_TEXT"),
+        page_count=extracted.get("page_count", 1),
+        extracted_text=extracted.get("full_text", ""),
+        uploaded_by=user_id
+    )
+    db.add(doc)
+    db.flush()
+
+    # Save document pages
+    for p in extracted.get("pages", []):
+        d_page = DocumentPage(
+            document_id=doc.id,
+            page_number=p.get("page_number", 1),
+            page_text=p.get("text", ""),
+            has_tables=p.get("has_tables", False),
+            ocr_applied=p.get("ocr_applied", False),
+            extraction_method=extracted.get("extraction_method", "PDF_TEXT"),
+            confidence=p.get("confidence", 1.0)
+        )
+        db.add(d_page)
+
+    # Extract entities safely
+    try:
+        entities = EntityExtractor.extract_all(extracted.get("full_text", ""), extracted.get("pages", []))
+        for ent in entities:
+            db_ent = ExtractedEntity(
+                document_id=doc.id,
+                entity_type=ent["entity_type"],
+                entity_value=ent["entity_value"],
+                normalized_value=ent.get("normalized_value"),
+                confidence=ent["confidence"],
+                page_number=ent.get("page_number", 1),
+                context_snippet=ent.get("context_snippet")
+            )
+            db.add(db_ent)
+    except Exception as e:
+        logger.warning(f"Entity extraction skipped on document {doc.id}: {e}")
+
+    db.commit()
+    db.refresh(doc)
+    return doc
+
+# ----------------- LIST BIDDERS -----------------
 @router.get("", response_model=List[BidderResponse])
 def list_bidders(tender_id: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(Bidder)
@@ -70,6 +199,7 @@ def list_bidders(tender_id: Optional[str] = None, db: Session = Depends(get_db))
         })
     return results
 
+# ----------------- CREATE BIDDER (JSON) -----------------
 @router.post("", response_model=BidderResponse)
 def create_bidder(
     bidder_in: BidderCreate,
@@ -78,16 +208,44 @@ def create_bidder(
 ):
     tender = db.query(Tender).filter(Tender.id == bidder_in.tender_id).first()
     if not tender:
-        raise HTTPException(status_code=404, detail="Tender not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "TENDER_NOT_FOUND", "message": "The specified pipeline tender was not found.", "field": "tender_id"}
+        )
 
-    resolved_name = (bidder_in.legal_name or bidder_in.bidder_name or "Bidder Entity").strip()
+    resolved_name = (bidder_in.legal_name or bidder_in.bidder_name or "").strip()
+    if not resolved_name:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "REQUIRED_FIELD_MISSING", "message": "Company / Legal Name is required.", "field": "legal_name"}
+        )
+
+    validated_pan = validate_pan_format_raw(bidder_in.pan)
+    validated_gstin = validate_gstin_format_raw(bidder_in.gstin)
+
+    # Check for duplicate PAN within the same tender
+    if validated_pan:
+        existing_pan = db.query(Bidder).filter(Bidder.tender_id == tender.id, Bidder.pan == validated_pan).first()
+        if existing_pan:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "BIDDER_ALREADY_EXISTS", "message": f"A bidder with PAN '{validated_pan}' already exists in this tender.", "field": "pan"}
+            )
+
+    # Check for duplicate Legal Name within the same tender
+    existing_name = db.query(Bidder).filter(Bidder.tender_id == tender.id, Bidder.legal_name.ilike(resolved_name)).first()
+    if existing_name:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "BIDDER_ALREADY_EXISTS", "message": f"A bidder with legal name '{resolved_name}' is already registered in this tender.", "field": "legal_name"}
+        )
 
     bidder = Bidder(
         tender_id=bidder_in.tender_id,
         legal_name=resolved_name,
         trade_name=bidder_in.trade_name,
-        gstin=bidder_in.gstin,
-        pan=bidder_in.pan,
+        gstin=validated_gstin,
+        pan=validated_pan,
         registered_address=bidder_in.registered_address,
         contact_information=bidder_in.contact_information or {},
         bidder_type=bidder_in.bidder_type or "INDIAN_EPC_CONTRACTOR",
@@ -114,7 +272,7 @@ def create_bidder(
         user_name=current_user.name,
         tender_id=tender.id,
         bidder_id=bidder.id,
-        new_state={"legal_name": bidder.legal_name, "gstin": bidder.gstin},
+        new_state={"legal_name": bidder.legal_name, "gstin": bidder.gstin, "pan": bidder.pan},
         reason=f"Created bidder {bidder.legal_name} for pipeline tender {tender.tender_number}"
     )
 
@@ -146,6 +304,131 @@ def create_bidder(
         "documents_count": 0
     }
 
+# ----------------- CREATE BIDDER WITH DOCUMENTS (MULTIPART FORMDATA) -----------------
+@router.post("/with-documents", response_model=BidderResponse)
+async def create_bidder_with_documents(
+    tender_id: str = Form(...),
+    legal_name: str = Form(...),
+    trade_name: Optional[str] = Form(None),
+    pan: Optional[str] = Form(None),
+    gstin: Optional[str] = Form(None),
+    documents: List[UploadFile] = File([]),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    tender = db.query(Tender).filter(Tender.id == tender_id).first()
+    if not tender:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "TENDER_NOT_FOUND", "message": "The specified pipeline tender was not found.", "field": "tender_id"}
+        )
+
+    resolved_name = legal_name.strip()
+    if not resolved_name:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "REQUIRED_FIELD_MISSING", "message": "Company / Legal Name is required.", "field": "legal_name"}
+        )
+
+    validated_pan = validate_pan_format_raw(pan)
+    validated_gstin = validate_gstin_format_raw(gstin)
+
+    if validated_pan:
+        existing_pan = db.query(Bidder).filter(Bidder.tender_id == tender.id, Bidder.pan == validated_pan).first()
+        if existing_pan:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "BIDDER_ALREADY_EXISTS", "message": f"A bidder with PAN '{validated_pan}' already exists in this tender.", "field": "pan"}
+            )
+
+    existing_name = db.query(Bidder).filter(Bidder.tender_id == tender.id, Bidder.legal_name.ilike(resolved_name)).first()
+    if existing_name:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "BIDDER_ALREADY_EXISTS", "message": f"A bidder with legal name '{resolved_name}' is already registered in this tender.", "field": "legal_name"}
+        )
+
+    bidder = Bidder(
+        tender_id=tender_id,
+        legal_name=resolved_name,
+        trade_name=trade_name,
+        gstin=validated_gstin,
+        pan=validated_pan,
+        bidder_type="INDIAN_EPC_CONTRACTOR",
+        country="INDIA",
+        status="SUBMITTED"
+    )
+    db.add(bidder)
+    db.commit()
+    db.refresh(bidder)
+
+    # Process and save any attached files
+    saved_docs = []
+    if documents:
+        for f in documents:
+            if f.filename:
+                d = process_and_save_document(db, bidder, f, "BIDDER_SUBMISSION", current_user.id)
+                saved_docs.append(d)
+
+    # Auto-run compliance verification safely
+    if saved_docs:
+        try:
+            ComplianceEngine.run_full_verification(
+                db=db,
+                bidder_id=bidder.id,
+                officer_id=current_user.id,
+                officer_name=current_user.name
+            )
+        except Exception as e:
+            logger.warning(f"Auto-verification warning on bidder {bidder.id}: {e}")
+
+    AuditService.log_action(
+        db=db,
+        action="BIDDER_CREATED",
+        entity_type="BIDDER",
+        entity_id=bidder.id,
+        user_id=current_user.id,
+        user_name=current_user.name,
+        tender_id=tender.id,
+        bidder_id=bidder.id,
+        new_state={"legal_name": bidder.legal_name, "pan": bidder.pan, "documents_uploaded": len(saved_docs)},
+        reason=f"Created bidder {bidder.legal_name} with {len(saved_docs)} dossier documents"
+    )
+
+    db.refresh(bidder)
+    score_val = bidder.compliance_score.overall_score if bidder.compliance_score else None
+    risk_val = bidder.risk_assessment.risk_level if bidder.risk_assessment else None
+    rec_val = bidder.recommendation.recommendation_type if bidder.recommendation else None
+
+    return {
+        "id": bidder.id,
+        "tender_id": bidder.tender_id,
+        "legal_name": bidder.legal_name,
+        "trade_name": bidder.trade_name,
+        "bidder_name": bidder.legal_name,
+        "gstin": bidder.gstin,
+        "pan": bidder.pan,
+        "registered_address": bidder.registered_address,
+        "contact_information": bidder.contact_information,
+        "bidder_type": bidder.bidder_type,
+        "country": bidder.country,
+        "oil_gas_experience_years": bidder.oil_gas_experience_years,
+        "pipeline_experience_years": bidder.pipeline_experience_years,
+        "udyam_number": bidder.udyam_number,
+        "cin": bidder.cin,
+        "email": bidder.email,
+        "phone": bidder.phone,
+        "contact_person": bidder.contact_person,
+        "status": bidder.status,
+        "submitted_at": bidder.submitted_at,
+        "created_at": bidder.created_at,
+        "compliance_score": score_val,
+        "risk_level": risk_val,
+        "recommendation_type": rec_val,
+        "documents_count": len(bidder.documents)
+    }
+
+# ----------------- GET BIDDER DETAIL -----------------
 @router.get("/{id}", response_model=BidderDetailResponse)
 def get_bidder(id: str, db: Session = Depends(get_db)):
     bidder = db.query(Bidder).filter(Bidder.id == id).first()
@@ -156,7 +439,6 @@ def get_bidder(id: str, db: Session = Depends(get_db)):
     risk_val = bidder.risk_assessment.risk_level if bidder.risk_assessment else None
     rec_val = bidder.recommendation.recommendation_type if bidder.recommendation else None
 
-    # Load projects and personnel
     projects = db.query(BidderProject).filter(BidderProject.bidder_id == id).all()
     personnel = db.query(BidderPersonnel).filter(BidderPersonnel.bidder_id == id).all()
 
@@ -196,7 +478,7 @@ def get_bidder(id: str, db: Session = Depends(get_db)):
         "officer_reviews": bidder.officer_reviews
     }
 
-# ----------------- BIDDER DOCUMENTS UPLOAD SUB-ROUTES -----------------
+# ----------------- UPLOAD DOCUMENTS TO EXISTING BIDDER -----------------
 @router.post("/{id}/documents", response_model=DocumentResponse)
 async def upload_bidder_document(
     id: str,
@@ -209,88 +491,9 @@ async def upload_bidder_document(
     if not bidder:
         raise HTTPException(status_code=404, detail="Bidder not found")
 
-    original_filename = file.filename or "bidder_document.pdf"
-    file_ext = os.path.splitext(original_filename)[1].lower()
+    doc = process_and_save_document(db, bidder, file, document_type, current_user.id)
 
-    if file_ext not in settings.ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file extension '{file_ext}'. Allowed: {settings.ALLOWED_EXTENSIONS}"
-        )
-
-    safe_filename = f"bidder_{bidder.id}_{uuid.uuid4().hex[:8]}{file_ext}"
-    dest_path = os.path.join(settings.UPLOAD_DIR, safe_filename)
-
-    with open(dest_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    file_size = os.path.getsize(dest_path)
-
-    # 1. Extract Text & Pages using PyMuPDF / OCR
-    try:
-        extracted = DocumentExtractor.extract_text_and_tables(dest_path)
-    except Exception as e:
-        logger.error(f"Text extraction failed on {dest_path}: {e}")
-        extracted = {
-            "full_text": "",
-            "pages": [{"page_number": 1, "text": "", "has_tables": False, "ocr_applied": False, "confidence": 0.5}],
-            "page_count": 1,
-            "is_scanned": False,
-            "extraction_method": "FALLBACK"
-        }
-
-    doc = Document(
-        bidder_id=bidder.id,
-        tender_id=bidder.tender_id,
-        document_name=original_filename,
-        original_filename=original_filename,
-        document_type=document_type,
-        file_path=dest_path,
-        file_size=file_size,
-        mime_type=file.content_type or "application/pdf",
-        is_scanned=extracted["is_scanned"],
-        extraction_method=extracted["extraction_method"],
-        page_count=extracted["page_count"],
-        extracted_text=extracted["full_text"],
-        uploaded_by=current_user.id
-    )
-    db.add(doc)
-    db.flush()
-
-    # Save document pages
-    for p in extracted["pages"]:
-        d_page = DocumentPage(
-            document_id=doc.id,
-            page_number=p["page_number"],
-            page_text=p["text"],
-            has_tables=p.get("has_tables", False),
-            ocr_applied=p.get("ocr_applied", False),
-            extraction_method=extracted["extraction_method"],
-            confidence=p.get("confidence", 1.0)
-        )
-        db.add(d_page)
-
-    # 2. Extract Entities
-    try:
-        entities = EntityExtractor.extract_all(extracted["full_text"], extracted["pages"])
-        for ent in entities:
-            db_ent = ExtractedEntity(
-                document_id=doc.id,
-                entity_type=ent["entity_type"],
-                entity_value=ent["entity_value"],
-                normalized_value=ent.get("normalized_value"),
-                confidence=ent["confidence"],
-                page_number=ent.get("page_number", 1),
-                context_snippet=ent.get("context_snippet")
-            )
-            db.add(db_ent)
-    except Exception as e:
-        logger.error(f"Entity extraction error: {e}")
-
-    db.commit()
-    db.refresh(doc)
-
-    # 3. Auto-trigger Compliance Engine
+    # Auto-run compliance verification
     try:
         ComplianceEngine.run_full_verification(
             db=db,
