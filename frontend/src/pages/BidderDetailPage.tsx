@@ -53,18 +53,25 @@ export const BidderDetailPage: React.FC = () => {
     }
   };
 
+  const [uploadProgress, setUploadProgress] = useState('');
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!id || !e.target.files || !e.target.files[0]) return;
-    const file = e.target.files[0];
+    if (!id || !e.target.files || e.target.files.length === 0) return;
+    const files = Array.from(e.target.files);
     setUploading(true);
     try {
-      await documentService.uploadBidderDocument(id, file, "SUPPLEMENTAL_DOCUMENT");
+      for (let i = 0; i < files.length; i++) {
+        setUploadProgress(`UPLOADING ${i + 1}/${files.length}: ${files[i].name}`);
+        await documentService.uploadBidderDocument(id, files[i], "SUPPLEMENTAL_DOCUMENT");
+      }
       await bidderService.verifyBidder(id);
       await loadBidder();
     } catch (err) {
       console.error("File upload failed", err);
     } finally {
       setUploading(false);
+      setUploadProgress('');
+      e.target.value = '';
     }
   };
 
@@ -96,8 +103,8 @@ export const BidderDetailPage: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <label className="px-3.5 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all shadow-2xs flex items-center gap-1.5">
             <FileUp className="w-4 h-4 text-emerald-600" />
-            {uploading ? "UPLOADING..." : "UPLOAD ATTACHMENT"}
-            <input type="file" onChange={handleFileUpload} className="hidden" accept=".pdf,.png,.jpg,.jpeg" />
+            {uploading ? (uploadProgress || "UPLOADING...") : "UPLOAD ATTACHMENTS (BATCH)"}
+            <input type="file" multiple onChange={handleFileUpload} className="hidden" accept=".pdf,.png,.jpg,.jpeg" />
           </label>
           <button
             onClick={handleRunVerification}

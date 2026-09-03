@@ -316,7 +316,8 @@ class BidResponse(BidBase):
 # ----------------- BIDDER SCHEMAS -----------------
 class BidderBase(BaseModel):
     tender_id: str
-    legal_name: str
+    legal_name: Optional[str] = None
+    bidder_name: Optional[str] = None
     trade_name: Optional[str] = None
     pan: Optional[str] = None
     gstin: Optional[str] = None
@@ -335,6 +336,7 @@ class BidderBase(BaseModel):
 
 class BidderCreate(BidderBase):
     pass
+
 
 class BidderResponse(BidderBase):
     model_config = ConfigDict(from_attributes=True)

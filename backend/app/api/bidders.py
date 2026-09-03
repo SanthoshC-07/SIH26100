@@ -1,4 +1,5 @@
 import os
+import uuid
 import shutil
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
@@ -23,6 +24,7 @@ from app.documents.extractor import DocumentExtractor
 from app.documents.entity_extractor import EntityExtractor
 from app.services.compliance_engine import ComplianceEngine
 from app.audit.audit_service import AuditService
+from app.core.logging_config import logger
 
 router = APIRouter(prefix="/bidders", tags=["Bidders"])
 
@@ -78,9 +80,11 @@ def create_bidder(
     if not tender:
         raise HTTPException(status_code=404, detail="Tender not found")
 
+    resolved_name = (bidder_in.legal_name or bidder_in.bidder_name or "Bidder Entity").strip()
+
     bidder = Bidder(
         tender_id=bidder_in.tender_id,
-        legal_name=bidder_in.legal_name,
+        legal_name=resolved_name,
         trade_name=bidder_in.trade_name,
         gstin=bidder_in.gstin,
         pan=bidder_in.pan,
@@ -190,6 +194,126 @@ def get_bidder(id: str, db: Session = Depends(get_db)):
         "risk_assessment_detail": bidder.risk_assessment,
         "recommendation_detail": bidder.recommendation,
         "officer_reviews": bidder.officer_reviews
+    }
+
+# ----------------- BIDDER DOCUMENTS UPLOAD SUB-ROUTES -----------------
+@router.post("/{id}/documents", response_model=DocumentResponse)
+async def upload_bidder_document(
+    id: str,
+    file: UploadFile = File(...),
+    document_type: str = Form("GENERAL"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    bidder = db.query(Bidder).filter(Bidder.id == id).first()
+    if not bidder:
+        raise HTTPException(status_code=404, detail="Bidder not found")
+
+    original_filename = file.filename or "bidder_document.pdf"
+    file_ext = os.path.splitext(original_filename)[1].lower()
+
+    if file_ext not in settings.ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file extension '{file_ext}'. Allowed: {settings.ALLOWED_EXTENSIONS}"
+        )
+
+    safe_filename = f"bidder_{bidder.id}_{uuid.uuid4().hex[:8]}{file_ext}"
+    dest_path = os.path.join(settings.UPLOAD_DIR, safe_filename)
+
+    with open(dest_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    file_size = os.path.getsize(dest_path)
+
+    # 1. Extract Text & Pages using PyMuPDF / OCR
+    try:
+        extracted = DocumentExtractor.extract_text_and_tables(dest_path)
+    except Exception as e:
+        logger.error(f"Text extraction failed on {dest_path}: {e}")
+        extracted = {
+            "full_text": "",
+            "pages": [{"page_number": 1, "text": "", "has_tables": False, "ocr_applied": False, "confidence": 0.5}],
+            "page_count": 1,
+            "is_scanned": False,
+            "extraction_method": "FALLBACK"
+        }
+
+    doc = Document(
+        bidder_id=bidder.id,
+        tender_id=bidder.tender_id,
+        document_name=original_filename,
+        original_filename=original_filename,
+        document_type=document_type,
+        file_path=dest_path,
+        file_size=file_size,
+        mime_type=file.content_type or "application/pdf",
+        is_scanned=extracted["is_scanned"],
+        extraction_method=extracted["extraction_method"],
+        page_count=extracted["page_count"],
+        extracted_text=extracted["full_text"],
+        uploaded_by=current_user.id
+    )
+    db.add(doc)
+    db.flush()
+
+    # Save document pages
+    for p in extracted["pages"]:
+        d_page = DocumentPage(
+            document_id=doc.id,
+            page_number=p["page_number"],
+            page_text=p["text"],
+            has_tables=p.get("has_tables", False),
+            ocr_applied=p.get("ocr_applied", False),
+            extraction_method=extracted["extraction_method"],
+            confidence=p.get("confidence", 1.0)
+        )
+        db.add(d_page)
+
+    # 2. Extract Entities
+    try:
+        entities = EntityExtractor.extract_all(extracted["full_text"], extracted["pages"])
+        for ent in entities:
+            db_ent = ExtractedEntity(
+                document_id=doc.id,
+                entity_type=ent["entity_type"],
+                entity_value=ent["entity_value"],
+                normalized_value=ent.get("normalized_value"),
+                confidence=ent["confidence"],
+                page_number=ent.get("page_number", 1),
+                context_snippet=ent.get("context_snippet")
+            )
+            db.add(db_ent)
+    except Exception as e:
+        logger.error(f"Entity extraction error: {e}")
+
+    db.commit()
+    db.refresh(doc)
+
+    # 3. Auto-trigger Compliance Engine
+    try:
+        ComplianceEngine.run_full_verification(
+            db=db,
+            bidder_id=bidder.id,
+            officer_id=current_user.id,
+            officer_name=current_user.name
+        )
+    except Exception as e:
+        logger.warning(f"Post-upload verification trigger warning: {e}")
+
+    return {
+        "id": doc.id,
+        "bidder_id": doc.bidder_id,
+        "tender_id": doc.tender_id,
+        "document_name": doc.document_name,
+        "original_filename": doc.original_filename,
+        "document_type": doc.document_type,
+        "file_size": doc.file_size,
+        "mime_type": doc.mime_type,
+        "is_scanned": doc.is_scanned,
+        "page_count": doc.page_count,
+        "upload_timestamp": doc.upload_timestamp,
+        "entities_count": len(doc.entities)
     }
 
 # ----------------- BIDDER PROJECTS SUB-ROUTES -----------------

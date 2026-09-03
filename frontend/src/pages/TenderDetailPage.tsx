@@ -13,9 +13,12 @@ export const TenderDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const [newBidderName, setNewBidderName] = useState('');
+  const [newBidderPan, setNewBidderPan] = useState('');
   const [newBidderGstin, setNewBidderGstin] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [creatingBidder, setCreatingBidder] = useState(false);
   const [showAddBidder, setShowAddBidder] = useState(false);
+  const [addError, setAddError] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -34,19 +37,33 @@ export const TenderDetailPage: React.FC = () => {
     e.preventDefault();
     if (!id || !newBidderName.trim()) return;
     setCreatingBidder(true);
+    setAddError('');
     try {
       const created = await bidderService.createBidder({
         tender_id: id,
+        legal_name: newBidderName.trim(),
         bidder_name: newBidderName.trim(),
+        pan: newBidderPan.trim() || undefined,
         gstin: newBidderGstin.trim() || undefined
       });
+
+      // Upload any selected documents
+      if (selectedFiles && selectedFiles.length > 0) {
+        for (let i = 0; i < selectedFiles.length; i++) {
+          await documentService.uploadBidderDocument(created.id, selectedFiles[i], "BIDDER_SUBMISSION");
+        }
+      }
+
       setBidders([created, ...bidders]);
       setNewBidderName('');
+      setNewBidderPan('');
       setNewBidderGstin('');
+      setSelectedFiles(null);
       setShowAddBidder(false);
       navigate(`/bidders/${created.id}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setAddError(err.response?.data?.detail || "Failed to add bidder. Please check inputs.");
     } finally {
       setCreatingBidder(false);
     }
@@ -184,22 +201,60 @@ export const TenderDetailPage: React.FC = () => {
 
           {showAddBidder && (
             <form onSubmit={handleCreateBidder} className="p-4 border-b border-[#D8DCD6] bg-[#FCFCFA] space-y-3 font-mono text-xs">
-              <input
-                type="text"
-                required
-                value={newBidderName}
-                onChange={(e) => setNewBidderName(e.target.value)}
-                placeholder="LEGAL ENTITY NAME *"
-                className="w-full border border-[#D8DCD6] p-2 bg-white text-[#17201C] outline-none"
-              />
-              <input
-                type="text"
-                value={newBidderGstin}
-                onChange={(e) => setNewBidderGstin(e.target.value)}
-                placeholder="GSTIN (OPTIONAL)"
-                className="w-full border border-[#D8DCD6] p-2 bg-white text-[#17201C] outline-none"
-              />
-              <div className="flex justify-end gap-2">
+              {addError && (
+                <div className="p-2.5 bg-red-50 text-red-700 border border-red-200 text-[11px]">
+                  {addError}
+                </div>
+              )}
+              <div>
+                <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Company / Legal Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={newBidderName}
+                  onChange={(e) => setNewBidderName(e.target.value)}
+                  placeholder="e.g. Praveen Energy Projects Ltd"
+                  className="w-full border border-[#D8DCD6] p-2 bg-white text-[#17201C] outline-none text-xs"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">PAN Number</label>
+                  <input
+                    type="text"
+                    value={newBidderPan}
+                    onChange={(e) => setNewBidderPan(e.target.value)}
+                    placeholder="e.g. BSZPP1234K"
+                    className="w-full border border-[#D8DCD6] p-2 bg-white text-[#17201C] outline-none text-xs uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">GSTIN Number</label>
+                  <input
+                    type="text"
+                    value={newBidderGstin}
+                    onChange={(e) => setNewBidderGstin(e.target.value)}
+                    placeholder="e.g. 29BSZPP1234K1Z5"
+                    className="w-full border border-[#D8DCD6] p-2 bg-white text-[#17201C] outline-none text-xs uppercase"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Upload Dossier Documents (Multiple Allowed)</label>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.png,.jpg,.jpeg"
+                  onChange={(e) => setSelectedFiles(e.target.files)}
+                  className="w-full border border-[#D8DCD6] p-1.5 bg-white text-[11px] text-slate-700 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-bold file:bg-[#163C32] file:text-white cursor-pointer"
+                />
+                {selectedFiles && selectedFiles.length > 0 && (
+                  <span className="text-[10px] text-emerald-700 font-bold block mt-1">
+                    ✓ {selectedFiles.length} file(s) selected for automatic indexing
+                  </span>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setShowAddBidder(false)}
@@ -210,9 +265,9 @@ export const TenderDetailPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={creatingBidder}
-                  className="px-3 py-1 bg-[#163C32] text-white text-[10px] font-bold uppercase disabled:opacity-50"
+                  className="px-3 py-1 bg-[#163C32] hover:bg-[#0E2922] text-white text-[10px] font-bold uppercase disabled:opacity-50"
                 >
-                  {creatingBidder ? "ADDING..." : "SAVE BIDDER"}
+                  {creatingBidder ? "ADDING & INDEXING..." : "SAVE BIDDER"}
                 </button>
               </div>
             </form>
