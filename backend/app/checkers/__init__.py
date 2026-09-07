@@ -7,33 +7,78 @@ from app.checkers.similar_pipeline_checker import SimilarPipelineExperienceCheck
 from app.checkers.technical_manpower_checker import TechnicalManpowerChecker
 from app.checkers.tender_specific_checker import TenderSpecificChecker
 
+# Singleton checker instances
+_gst = GSTChecker()
+_pan = PANChecker()
+_turnover = TurnoverChecker()
+_oil_gas = OilGasExperienceChecker()
+_pipeline = SimilarPipelineExperienceChecker()
+_manpower = TechnicalManpowerChecker()
+_tender = TenderSpecificChecker()
+
+# ── CHECKER REGISTRY ───────────────────────────────────────────────────────────
+# Maps BOTH the 10 locked ML class names AND legacy internal names to checkers.
+# DO NOT remove or rename any of the 10 locked ML class names below.
 CHECKER_REGISTRY = {
-    "GST": GSTChecker(),
-    "PAN": PANChecker(),
-    "TURNOVER": TurnoverChecker(),
-    "OIL_GAS_EXPERIENCE": OilGasExperienceChecker(),
-    "SIMILAR_PIPELINE_EXPERIENCE": SimilarPipelineExperienceChecker(),
-    "TECHNICAL_MANPOWER": TechnicalManpowerChecker(),
-    "HSE_SAFETY": TenderSpecificChecker(),
-    "OEM_AUTHORIZATION": TenderSpecificChecker(),
-    "OEM": TenderSpecificChecker(),
-    "LOCAL_CONTENT": TenderSpecificChecker()
+    # ── 10 Locked ML Classification Classes ────────────────────────────────────
+    "GST_TAX_COMPLIANCE":           _gst,
+    "MSME_UDYAM_ELIGIBILITY":       _tender,
+    "FINANCIAL_ELIGIBILITY":        _turnover,
+    "EXPERIENCE_ELIGIBILITY":       _oil_gas,
+    "OEM_AUTHORIZATION":            _tender,
+    "BLACKLISTING_DEBARMENT":       _tender,
+    "TECHNICAL_SPECIFICATION":      _tender,
+    "INDUSTRY_STANDARD_COMPLIANCE": _tender,
+    "SAFETY_REGULATORY_COMPLIANCE": _tender,
+    "MAKE_IN_INDIA_LOCAL_CONTENT":  _tender,
+
+    # ── Legacy / Internal Category Names (backward compat) ─────────────────────
+    "GST":                          _gst,
+    "PAN":                          _pan,
+    "TURNOVER":                     _turnover,
+    "OIL_GAS_EXPERIENCE":           _oil_gas,
+    "SIMILAR_PIPELINE_EXPERIENCE":  _pipeline,
+    "TECHNICAL_MANPOWER":           _manpower,
+    "HSE_SAFETY":                   _tender,
+    "OEM":                          _tender,
+    "LOCAL_CONTENT":                _tender,
+    "TENDER_SPECIFIC":              _tender,
 }
 
+
 def get_checker_for_category(category: str) -> BaseChecker:
-    cat = (category or "").upper()
+    """Return the appropriate checker for a requirement category."""
+    cat = (category or "").upper().strip()
     if cat in CHECKER_REGISTRY:
         return CHECKER_REGISTRY[cat]
-    if "PIPELINE" in cat:
-        return CHECKER_REGISTRY["SIMILAR_PIPELINE_EXPERIENCE"]
+
+    # Fuzzy fallback matching
+    if "PIPELINE" in cat or "SIMILAR" in cat:
+        return _pipeline
     if "OIL" in cat or "GAS" in cat or "EXPERIENCE" in cat:
-        return CHECKER_REGISTRY["OIL_GAS_EXPERIENCE"]
-    if "MANPOWER" in cat or "ENGINEER" in cat:
-        return CHECKER_REGISTRY["TECHNICAL_MANPOWER"]
-    if "HSE" in cat or "SAFETY" in cat or "OEM" in cat or "LOCAL" in cat:
-        return CHECKER_REGISTRY["HSE_SAFETY"]
-    # Fallback to tender specific checker
-    return TenderSpecificChecker()
+        return _oil_gas
+    if "MANPOWER" in cat or "ENGINEER" in cat or "PERSONNEL" in cat:
+        return _manpower
+    if "HSE" in cat or "SAFETY" in cat or "SAFETY_REGULATORY" in cat:
+        return _tender
+    if "OEM" in cat or "AUTHORIZ" in cat:
+        return _tender
+    if "LOCAL" in cat or "MAKE_IN" in cat or "INDIA" in cat:
+        return _tender
+    if "BLACKLIST" in cat or "DEBARR" in cat:
+        return _tender
+    if "MSME" in cat or "UDYAM" in cat:
+        return _tender
+    if "FINANCIAL" in cat or "TURNOVER" in cat:
+        return _turnover
+    if "GST" in cat:
+        return _gst
+    if "PAN" in cat or "INCOME_TAX" in cat:
+        return _pan
+
+    # Default
+    return _tender
+
 
 __all__ = [
     "BaseChecker",
@@ -47,3 +92,4 @@ __all__ = [
     "CHECKER_REGISTRY",
     "get_checker_for_category"
 ]
+

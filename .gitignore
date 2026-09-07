@@ -11,6 +11,10 @@ ENV/
 *.db
 *.sqlite3
 .pytest_cache/
+# Environment
+.env
+.env.*
+!.env.example
 
 # Node / Vite
 node_modules/

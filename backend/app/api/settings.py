@@ -2,12 +2,14 @@ from fastapi import APIRouter, Depends
 from app.core.config import settings
 from app.schemas.schemas import SettingsUpdate
 from app.models.models import User
-from app.api.deps import get_current_user
+from app.api.deps import require_role
 
-router = APIRouter(prefix="/settings", tags=["Settings & Configuration"])
+router = APIRouter(prefix="/settings", tags=["Settings & Configuration (Admin Only)"])
 
 @router.get("")
-def get_system_settings():
+def get_system_settings(
+    current_admin: User = Depends(require_role("ADMIN"))
+):
     return {
         "scoring_weights": settings.SCORING_WEIGHTS,
         "confidence_high": settings.CONFIDENCE_HIGH,
@@ -21,7 +23,7 @@ def get_system_settings():
 @router.post("")
 def update_system_settings(
     settings_in: SettingsUpdate,
-    current_user: User = Depends(get_current_user)
+    current_admin: User = Depends(require_role("ADMIN"))
 ):
     settings.SCORING_WEIGHTS = settings_in.scoring_weights
     settings.CONFIDENCE_HIGH = settings_in.confidence_high

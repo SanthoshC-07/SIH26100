@@ -12,7 +12,10 @@ class Settings(BaseSettings):
     
     # Environment & Database
     ENV: str = "development"
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./sih26100.db")
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        f"sqlite:///{os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'app.db').replace(chr(92), '/')}"
+    )
     
     # Security / Auth
     JWT_SECRET: str = os.getenv("JWT_SECRET", os.getenv("SECRET_KEY", "sih26100-gem-procurement-compliance-secret-key-2026"))
@@ -28,7 +31,10 @@ class Settings(BaseSettings):
         return self.JWT_ALGORITHM
     
     # Storage
-    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", os.path.join(os.getcwd(), "uploads"))
+    UPLOAD_DIR: str = os.getenv(
+        "UPLOAD_DIR",
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "uploads")
+    )
     MAX_FILE_SIZE_MB: int = int(os.getenv("MAX_FILE_SIZE_MB", "25"))
     ALLOWED_EXTENSIONS: List[str] = [".pdf", ".png", ".jpg", ".jpeg"]
     ALLOWED_MIME_TYPES: List[str] = [
@@ -60,6 +66,11 @@ class Settings(BaseSettings):
     CONFIDENCE_HIGH: float = 0.90      # Auto-accepted if rule matches
     CONFIDENCE_MEDIUM: float = 0.70    # Review recommended
     
+    # NVIDIA NIM LLM & Vision Configuration
+    NVIDIA_API_KEY: str = os.getenv("NVIDIA_API_KEY", "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")
+    NVIDIA_MODEL: str = os.getenv("NVIDIA_MODEL", "meta/llama-3.2-90b-vision-instruct")
+    NVIDIA_INVOKE_URL: str = os.getenv("NVIDIA_INVOKE_URL", "https://integrate.api.nvidia.com/v1/chat/completions")
+
     # Adapter Settings
     USE_MOCK_PORTALS: bool = True
     GOVERNMENT_SOURCE_LABEL: str = "DEMO / MOCK GOVERNMENT SOURCE"

@@ -20,5 +20,15 @@ export const documentService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return res.data;
+  },
+
+  inspectDocument: async (file: File, category?: string): Promise<any> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (category) formData.append('category', category);
+    const res = await api.post('/bidders/inspect-document', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
   }
 };

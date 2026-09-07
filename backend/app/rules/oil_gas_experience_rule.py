@@ -37,7 +37,7 @@ class OilGasExperienceRuleEngine:
             val = e.get("entity_value", "")
             snippet = e.get("context_snippet", val)
             
-            if etype in ["OIL_GAS_PROJECT", "PROJECT_EXPERIENCE", "EXPERIENCE"]:
+            if etype in ["OIL_GAS_PROJECT", "PROJECT_EXPERIENCE", "EXPERIENCE", "EXPERIENCE_YEARS", "WORK_EXPERIENCE", "EXPERIENCE_RECORD"]:
                 val_lower = (val + " " + snippet).lower()
                 matches = [kw for kw in cls.OIL_GAS_KEYWORDS if kw in val_lower]
                 if matches:

@@ -6,18 +6,22 @@ class TenderRequirementParser:
     Parses natural-language petroleum/pipeline tender document clauses and converts them into
     structured requirement records with categories, numerical thresholds,
     period constraints, mandatory flags, and required evidence types.
-    Focuses on the 7 Core Compliance Checks for Petroleum & Natural Gas procurement.
+    Integrates UnifiedRequirementExtractor (LLM + Regex + ML Classifier).
     """
 
     @staticmethod
     def parse_clauses_from_text(text: str) -> List[Dict[str, Any]]:
+        if not text or not text.strip():
+            return TenderRequirementParser.get_default_petroleum_pipeline_requirements()
+
         requirements = []
         lines = [l.strip() for l in text.split("\n") if l.strip()]
         
+        # Segment paragraphs / candidate requirement clauses
         paragraphs = []
         curr = []
         for l in lines:
-            if re.match(r"^(?:Clause|[0-9]+[\.\)]|Section|[A-Z][\.\)])\s+", l, re.IGNORECASE):
+            if re.match(r"^(?:Clause|[0-9]+[\.\)]|Section|[A-Z][\.\)]|CHECK\s*[0-9]+|REQ\s*[-–:]|Requirement\s*[0-9]*)\s+", l, re.IGNORECASE):
                 if curr:
                     paragraphs.append(" ".join(curr))
                     curr = []
@@ -25,15 +29,90 @@ class TenderRequirementParser:
         if curr:
             paragraphs.append(" ".join(curr))
 
+        # If standard section regex didn't split into chunks, split on double newlines or sentence boundaries
+        if len(paragraphs) <= 1:
+            raw_blocks = [b.strip() for b in re.split(r"\n\s*\n|\.\s+(?=[A-Z0-9])", text) if len(b.strip()) > 25]
+            if raw_blocks:
+                paragraphs = raw_blocks
+
+        # Import unified requirement extractor
+        try:
+            from app.ml.requirement_extractor import unified_requirement_extractor
+        except ImportError:
+            unified_requirement_extractor = None
+
         clause_idx = 1
         for p in paragraphs:
-            req = TenderRequirementParser.classify_and_structure_clause(p, clause_idx)
-            if req:
-                requirements.append(req)
+            # Skip noise / header / footer lines
+            if len(p) < 15 or p.lower().startswith("generated:") or p.lower().startswith("page ") or p.lower().startswith("official stamp"):
+                continue
+
+            # Try unified 3-stage extractor first if available
+            structured_req = None
+            if unified_requirement_extractor:
+                try:
+                    ext = unified_requirement_extractor.extract(p)
+                    cat = ext.get("category")
+                    # If meaningful requirement category detected
+                    if cat and cat not in ["TECHNICAL_SPECIFICATION", ""] or ext.get("threshold") or len(ext.get("entities", [])) > 0:
+                        # Map locked class to backend requirement categories
+                        cat_mapping = {
+                            "GST_TAX_COMPLIANCE": "GST",
+                            "MSME_UDYAM_ELIGIBILITY": "UDYAM",
+                            "FINANCIAL_ELIGIBILITY": "TURNOVER",
+                            "EXPERIENCE_ELIGIBILITY": "SIMILAR_PIPELINE_EXPERIENCE",
+                            "OEM_AUTHORIZATION": "OEM",
+                            "BLACKLISTING_DEBARMENT": "NON_BLACKLISTING",
+                            "TECHNICAL_SPECIFICATION": "TECHNICAL_MANPOWER",
+                            "INDUSTRY_STANDARD_COMPLIANCE": "SIMILAR_PIPELINE_EXPERIENCE",
+                            "SAFETY_REGULATORY_COMPLIANCE": "HSE_SAFETY",
+                            "MAKE_IN_INDIA_LOCAL_CONTENT": "LOCAL_CONTENT"
+                        }
+                        backend_cat = cat_mapping.get(cat, cat)
+                        
+                        # Determine evidence types based on category
+                        ev_map = {
+                            "GST": ["GST_REGISTRATION_CERTIFICATE", "LATEST_GSTR_3B_FILING"],
+                            "PAN": ["PAN_CARD", "ITR_ACKNOWLEDGEMENT"],
+                            "TURNOVER": ["AUDITED_FINANCIAL_STATEMENT", "CA_TURNOVER_CERTIFICATE"],
+                            "SIMILAR_PIPELINE_EXPERIENCE": ["PIPELINE_COMPLETION_CERTIFICATE", "CLIENT_WORK_ORDER", "COMMISSIONING_REPORT"],
+                            "OIL_GAS_EXPERIENCE": ["EXPERIENCE_CERTIFICATES", "CLIENT_COMPLETION_LETTERS"],
+                            "TECHNICAL_MANPOWER": ["KEY_PERSONNEL_CVS", "DEGREE_CERTIFICATES", "EXPERIENCE_RECORDS"],
+                            "HSE_SAFETY": ["ISO_45001_CERTIFICATE", "ISO_14001_CERTIFICATE", "SAFETY_POLICY_MANUAL"],
+                            "OEM": ["MANUFACTURER_AUTHORIZATION_FORM_MAF", "OEM_WARRANTY_COMMITMENT"],
+                            "LOCAL_CONTENT": ["LOCAL_CONTENT_SELF_DECLARATION", "COST_AUDITOR_CERTIFICATE"]
+                        }
+
+                        threshold_val = ext.get("threshold") or ext.get("minimum_value") or ext.get("value")
+                        unit_val = ext.get("unit") or ("INR" if backend_cat == "TURNOVER" else ("KM" if backend_cat == "SIMILAR_PIPELINE_EXPERIENCE" else None))
+                        period_val = f"LAST_{ext.get('time_period_years')}_YEARS" if ext.get("time_period_years") else ("CURRENT_ACTIVE" if backend_cat == "GST" else "ANNUAL")
+
+                        structured_req = {
+                            "category": backend_cat,
+                            "clause_number": f"Cl-{clause_idx}",
+                            "description": p,
+                            "threshold": float(threshold_val) if threshold_val is not None else None,
+                            "threshold_unit": unit_val,
+                            "period": period_val,
+                            "mandatory": True,
+                            "evidence_required": ev_map.get(backend_cat, ["COMPLIANCE_CERTIFICATE"]),
+                            "verification_method": "AI_HYBRID_EXTRACTOR",
+                            "rule_version": "1.0",
+                            "confidence": ext.get("confidence", 0.90)
+                        }
+                except Exception:
+                    structured_req = None
+
+            # Fallback to rule-based classification if unified extractor didn't match
+            if not structured_req:
+                structured_req = TenderRequirementParser.classify_and_structure_clause(p, clause_idx)
+
+            if structured_req:
+                requirements.append(structured_req)
                 clause_idx += 1
 
-        # If few requirements detected from raw text, populate the 7 Core Petroleum Pipeline Requirements
-        if len(requirements) < 5:
+        # ONLY fallback to default seed requirements if 0 requirements could be extracted from document text
+        if len(requirements) == 0:
             requirements = TenderRequirementParser.get_default_petroleum_pipeline_requirements()
 
         return requirements

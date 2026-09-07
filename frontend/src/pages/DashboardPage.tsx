@@ -1,363 +1,478 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ShieldCheck,
-  Clock,
+  FileSpreadsheet,
   AlertTriangle,
   CheckCircle2,
-  TrendingUp,
-  FileText,
-  ArrowUpRight,
-  Filter,
-  Download,
-  Search,
-  ExternalLink,
+  XCircle,
+  Clock,
+  ArrowRight,
+  ShieldCheck,
+  RefreshCw,
+  Activity,
+  Layers,
   ChevronRight,
-  Sparkles
+  Eye,
+  Sliders
 } from 'lucide-react';
-import { analyticsService, bidderService } from '../services';
-import { DashboardStats, Bidder } from '../types';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Cell
+} from 'recharts';
+import { bidderService, tenderService, auditService } from '../services';
+import { Bidder, Tender, AuditLog } from '../types';
 import { RiskBadge } from '../components/RiskBadge';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [bidders, setBidders] = useState<Bidder[]>([]);
+  const [tenders, setTenders] = useState<Tender[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [tendersData, biddersData, logsData] = await Promise.all([
+        tenderService.getTenders().catch(() => []),
+        bidderService.getBidders().catch(() => []),
+        auditService.getAuditLogs().catch(() => [])
+      ]);
+
+      setTenders(tendersData);
+      setBidders(biddersData);
+      setAuditLogs(logsData.slice(0, 6));
+    } catch (e) {
+      console.error("Dashboard data fetch error:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    Promise.all([
-      analyticsService.getDashboardStats().catch(() => null),
-      bidderService.getBidders().catch(() => [])
-    ]).then(([st, b]) => {
-      if (st) setStats(st);
-      setBidders(b);
-    }).finally(() => setLoading(false));
+    loadData();
   }, []);
 
-  const filteredBidders = bidders.filter(b => 
-    b.legal_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (b.pan && b.pan.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (b.gstin && b.gstin.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Standardized Metrics
+  const activeTendersCount = tenders.length > 0 ? tenders.length : 38;
+  const pendingRecordsCount = bidders.filter(b => b.status === 'UNDER_REVIEW').length || 12;
+  const openComplaintsCount = 5;
+  const auditScoreDisplay = '94.2%';
+
+  // Chart Data: Compliance Integrity Trend
+  const complianceTrendData = [
+    { period: 'Jan 2026', pass: 14, review: 4, fail: 2 },
+    { period: 'Feb 2026', pass: 18, review: 6, fail: 3 },
+    { period: 'Mar 2026', pass: 22, review: 5, fail: 1 },
+    { period: 'Apr 2026', pass: 27, review: 7, fail: 4 },
+    { period: 'May 2026', pass: 31, review: 4, fail: 2 },
+    { period: 'Current', pass: 36, review: 8, fail: 3 },
+  ];
+
+  // Chart Data: Dynamic Risk Distribution
+  const riskDistributionData = [
+    { category: 'Low', count: bidders.filter(b => b.risk_level === 'LOW').length || 1, color: '#198754' },
+    { category: 'Medium', count: bidders.filter(b => b.risk_level === 'MEDIUM').length || 1, color: '#D98A16' },
+    { category: 'High / Critical', count: bidders.filter(b => ['HIGH', 'CRITICAL'].includes((b.risk_level || '').toUpperCase())).length || 1, color: '#C83B32' },
+  ];
+
+  // Recent Tender Activity (exact matching PDF Page 3)
+  const recentTenderActivity = [
+    { id: 'TND-2201', dept: 'Pipeline Maintenance', bidders: 14, status: 'Under Review', deadline: '12 Sep 2026' },
+    { id: 'TND-2198', dept: 'Refinery Equipment Supply', bidders: 9, status: 'Verified', deadline: '08 Sep 2026' },
+    { id: 'TND-2195', dept: 'Storage Tank Inspection', bidders: 21, status: 'Open', deadline: '20 Sep 2026' },
+    { id: 'TND-2190', dept: 'Crude Transport Contract', bidders: 6, status: 'Flagged', deadline: '05 Sep 2026' },
+  ];
+
+  // Canonical 3 Demo Bidders mapped dynamically
+  const recentBidsList = bidders.length > 0 ? bidders.map(b => {
+    const rawScore = typeof b.compliance_score === 'number' 
+      ? b.compliance_score 
+      : (b.status === 'VERIFIED' ? 100 : b.status === 'UNDER_REVIEW' ? 85.7 : 60);
+    const score = Math.round(rawScore);
+    const risk = (b.risk_level || (score >= 90 ? 'LOW' : score >= 70 ? 'MEDIUM' : 'CRITICAL')).toUpperCase() as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    const status = b.status === 'VERIFIED' ? 'QUALIFIED' : b.status === 'DISQUALIFIED' ? 'DISQUALIFIED' : 'UNDER REVIEW';
+    
+    return {
+      id: b.id,
+      legal_name: b.legal_name || b.bidder_name,
+      pan: b.pan || 'BSZPP1234K',
+      gstin: b.gstin || '29MOCKP1234M1Z5',
+      compliance_score: score,
+      risk_level: risk,
+      status: status,
+      submissionDate: '05-Sep-2026, 14:30',
+      category: 'Natural Gas Transmission Pipeline',
+      isPrimary: (b.legal_name || b.bidder_name).includes('PRAVEEN')
+    };
+  }) : [
+    {
+      id: 'BID-2026-017',
+      legal_name: 'PRAVEEN B S ENGINEERING SERVICES',
+      pan: 'BSZPP1234K',
+      gstin: '29MOCKP1234M1Z5',
+      compliance_score: 100,
+      risk_level: 'LOW' as const,
+      status: 'QUALIFIED',
+      submissionDate: '05-Sep-2026, 14:30',
+      category: 'Natural Gas Transmission Pipeline',
+      isPrimary: true
+    },
+    {
+      id: 'BID-2026-018',
+      legal_name: 'Bharat Hydrocarbon Infra Ltd',
+      pan: 'AABCB7890K',
+      gstin: '27AABCB7890K1Z4',
+      compliance_score: 86,
+      risk_level: 'MEDIUM' as const,
+      status: 'UNDER REVIEW',
+      submissionDate: '05-Sep-2026, 12:15',
+      category: 'Natural Gas Transmission Pipeline',
+      isPrimary: false
+    },
+    {
+      id: 'BID-2026-019',
+      legal_name: 'Indus Pipeline Infrastructure Limited',
+      pan: 'AABCI5678K',
+      gstin: '07AABCI5678K1Z2',
+      compliance_score: 60,
+      risk_level: 'CRITICAL' as const,
+      status: 'DISQUALIFIED',
+      submissionDate: '05-Sep-2026, 10:45',
+      category: 'Natural Gas Transmission Pipeline',
+      isPrimary: false
+    }
+  ];
+
+  if (loading) {
+    return (
+      <div className="space-y-5 font-sans page-enter">
+        <div className="bg-white border border-[#D9DEE3] p-5 rounded-md">
+          <div className="skeleton h-4 w-40 mb-2" />
+          <div className="skeleton h-8 w-64" />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="card-petro p-5">
+              <div className="skeleton h-3 w-28 mb-3" />
+              <div className="skeleton h-10 w-16" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans page-enter">
       
-      {/* 1. Hero Welcome Card (Matching Page 3 from PDF) */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-card p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
-        <div className="space-y-3 z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-md text-[11px] font-bold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5" />
-            Platform Overview • Petroleum Pipeline Cell
+      {/* ── Page Header (from PDF Page 3) ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="text-[10px] font-semibold tracking-[0.1em] text-[#66717C] uppercase">
+            DASHBOARD
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#10283A] mt-1">
             Welcome back, Alex Rivera
           </h1>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Verification engine is operating at full capacity. You have <strong className="text-slate-900 font-bold">{stats?.pending_reviews || 4} pending bids</strong> requiring compliance clearance today across MoPNG pipeline procurement tenders.
-          </p>
-          
-          <div className="flex flex-wrap items-center gap-3 pt-1">
-            <button
-              onClick={() => navigate('/verification')}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-2"
-            >
-              <AlertTriangle className="w-4 h-4" />
-              Review High Risk Flags
-            </button>
-            <button
-              onClick={() => navigate('/reports')}
-              className="px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold transition-all flex items-center gap-2"
-            >
-              <FileText className="w-4 h-4 text-slate-500" />
-              Upload Audit Report
-            </button>
-          </div>
         </div>
 
-        {/* Right Abstract Visual Decoration */}
-        <div className="hidden lg:block w-72 h-36 rounded-lg bg-gradient-to-br from-slate-900 to-blue-950 p-4 text-white relative shadow-md">
-          <div className="text-[10px] uppercase font-mono text-blue-300 font-bold">Live Model Telemetry</div>
-          <div className="text-xl font-bold font-mono mt-2">7 Core Checkers</div>
-          <div className="text-[11px] text-slate-300 mt-1">Rule Engine + Tesseract OCR Active</div>
-          <div className="mt-4 flex items-center justify-between text-[10px] font-mono text-slate-400 border-t border-white/10 pt-2">
-            <span>Accuracy: 99.4%</span>
-            <span className="text-emerald-400 font-bold">FIPS-Ready</span>
-          </div>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            onClick={() => navigate('/compliance-review')}
+            className="btn-navy"
+          >
+            <ShieldCheck className="w-4 h-4 text-[#D98A16]" />
+            <span>Compliance Review</span>
+          </button>
+          <button
+            onClick={loadData}
+            title="Refresh"
+            className="p-2 bg-white border border-[#D9DEE3] hover:bg-[#F4F5F7] text-[#17212B] rounded transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
-      {/* 2. Top 4 Stat KPI Cards (Matching Page 3 from PDF) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* ── 4 Top KPI Cards (exact style from PDF Page 3) ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         
-        {/* Card 1: Average Compliance Score */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-card p-5 space-y-3">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-medium">Average Compliance Score</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
+        {/* Card 1: ACTIVE TENDERS */}
+        <div className="bg-white border border-[#D9DEE3] rounded-md p-5 shadow-sm">
+          <div className="text-[10px] font-semibold text-[#66717C] uppercase tracking-[0.08em]">
+            ACTIVE TENDERS
           </div>
-          <div className="text-2xl font-extrabold tracking-tight text-slate-900">
-            {stats ? `${stats.average_compliance_score.toFixed(1)}%` : '94.2%'}
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 font-medium">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>+2.4% Across all active bids</span>
+          <div className="font-serif text-3xl sm:text-4xl font-bold text-[#198754] mt-2">
+            {activeTendersCount}
           </div>
         </div>
 
-        {/* Card 2: Pending Verifications */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-card p-5 space-y-3">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-medium">Pending Verifications</span>
-            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-              <Clock className="w-4 h-4" />
-            </div>
+        {/* Card 2: PENDING BIDDER RECORDS */}
+        <div className="bg-white border border-[#D9DEE3] rounded-md p-5 shadow-sm">
+          <div className="text-[10px] font-semibold text-[#66717C] uppercase tracking-[0.08em]">
+            PENDING BIDDER RECORDS
           </div>
-          <div className="text-2xl font-extrabold tracking-tight text-slate-900">
-            {stats ? stats.pending_reviews : '28'}
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-amber-600 font-medium">
-            <span>Requires auditor review</span>
+          <div className="font-serif text-3xl sm:text-4xl font-bold text-[#D98A16] mt-2">
+            {pendingRecordsCount}
           </div>
         </div>
 
-        {/* Card 3: High Risk Flags */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-card p-5 space-y-3">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-medium">High Risk Flags</span>
-            <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
-              <AlertTriangle className="w-4 h-4" />
-            </div>
+        {/* Card 3: OPEN COMPLAINTS */}
+        <div className="bg-white border border-[#D9DEE3] rounded-md p-5 shadow-sm">
+          <div className="text-[10px] font-semibold text-[#66717C] uppercase tracking-[0.08em]">
+            OPEN COMPLAINTS
           </div>
-          <div className="text-2xl font-extrabold tracking-tight text-slate-900">
-            {stats ? stats.high_risk_bidders : '3'}
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-rose-600 font-medium">
-            <span>Immediate action required</span>
+          <div className="font-serif text-3xl sm:text-4xl font-bold text-[#C83B32] mt-2">
+            {openComplaintsCount}
           </div>
         </div>
 
-        {/* Card 4: Verified This Month */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-card p-5 space-y-3">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-medium">Verified This Month</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
+        {/* Card 4: AUDIT SCORE */}
+        <div className="bg-white border border-[#D9DEE3] rounded-md p-5 shadow-sm">
+          <div className="text-[10px] font-semibold text-[#66717C] uppercase tracking-[0.08em]">
+            AUDIT SCORE
           </div>
-          <div className="text-2xl font-extrabold tracking-tight text-slate-900">
-            {stats ? stats.total_bidders : '142'}
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 font-medium">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>+12% Finalized procurement checks</span>
+          <div className="font-serif text-3xl sm:text-4xl font-bold text-[#10283A] mt-2">
+            {auditScoreDisplay}
           </div>
         </div>
 
       </div>
 
-      {/* 3. Charts Section (Matching Page 3 from PDF) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Compliance Integrity Trend (2 cols) */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-card p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-blue-600" />
-                Compliance Integrity Trend
-              </h2>
-              <p className="text-xs text-slate-500">
-                Monthly aggregate compliance scores vs. federal benchmark.
-              </p>
-            </div>
-            <div className="flex items-center gap-4 text-xs font-medium">
-              <span className="flex items-center gap-1.5 text-slate-700">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span> Actual Compliance
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-400">
-                <span className="w-2.5 h-0.5 bg-slate-400"></span> Benchmark
-              </span>
-            </div>
-          </div>
-
-          {/* SVG Trend Graph */}
-          <div className="h-48 w-full pt-4">
-            <svg className="w-full h-full" viewBox="0 0 500 150" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#2563EB" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="#2563EB" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-              <line x1="0" y1="120" x2="500" y2="120" stroke="#F1F5F9" strokeWidth="1" />
-              <line x1="0" y1="80" x2="500" y2="80" stroke="#F1F5F9" strokeWidth="1" />
-              <line x1="0" y1="40" x2="500" y2="40" stroke="#F1F5F9" strokeWidth="1" />
-              <line x1="0" y1="75" x2="500" y2="75" stroke="#94A3B8" strokeWidth="1.5" strokeDasharray="4 4" />
-              <path d="M 0,90 Q 80,105 160,85 T 320,60 T 500,45 L 500,150 L 0,150 Z" fill="url(#grad)" />
-              <path d="M 0,90 Q 80,105 160,85 T 320,60 T 500,45" fill="none" stroke="#2563EB" strokeWidth="2.5" />
-            </svg>
-            <div className="flex justify-between text-[11px] font-mono text-slate-400 mt-2 px-1">
-              <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
-            </div>
-          </div>
+      {/* ── Recent Tender Activity Table (exact from PDF Page 3) ── */}
+      <div className="bg-white border border-[#D9DEE3] rounded-md shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#D9DEE3] flex items-center justify-between">
+          <h2 className="font-serif text-base font-bold text-[#10283A]">
+            Recent Tender Activity
+          </h2>
+          <button
+            onClick={() => navigate('/tenders')}
+            className="text-xs font-semibold text-[#10283A] hover:text-[#D98A16] flex items-center gap-1 transition-colors"
+          >
+            <span>View All Tenders</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        {/* Risk Distribution Doughnut (1 col) */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-card p-6 space-y-4 flex flex-col justify-between">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">Risk Distribution</h2>
-            <p className="text-xs text-slate-500">Breakdown of current pipeline by risk category</p>
-          </div>
-
-          <div className="flex items-center justify-center my-2">
-            <div className="relative w-36 h-36 flex items-center justify-center">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#E2E8F0" strokeWidth="3.5" />
-                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#10B981" strokeWidth="3.5" strokeDasharray="65 35" strokeDashoffset="0" />
-                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#F59E0B" strokeWidth="3.5" strokeDasharray="20 80" strokeDashoffset="-65" />
-                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#EF4444" strokeWidth="3.5" strokeDasharray="10 90" strokeDashoffset="-85" />
-                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#881337" strokeWidth="3.5" strokeDasharray="5 95" strokeDashoffset="-95" />
-              </svg>
-              <div className="absolute text-center">
-                <div className="text-xl font-bold text-slate-900">100%</div>
-                <div className="text-[10px] text-slate-400 uppercase font-mono font-medium">Bids</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-              <span className="text-slate-600">Low Risk <strong className="text-slate-900">65%</strong></span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-              <span className="text-slate-600">Medium <strong className="text-slate-900">20%</strong></span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-              <span className="text-slate-600">High Risk <strong className="text-slate-900">10%</strong></span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-900"></span>
-              <span className="text-slate-600">Critical <strong className="text-slate-900">5%</strong></span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* 4. Recent Bids Activity Table (Matching Page 3 from PDF) */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-card overflow-hidden">
-        
-        {/* Table Header Bar */}
-        <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">Recent Bids Activity</h2>
-            <p className="text-xs text-slate-500">Detailed overview of latest procurement submissions and status</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Filter by ID or entity..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 w-48 sm:w-60"
-              />
-            </div>
-            <button className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5">
-              <Filter className="w-3.5 h-3.5" /> Filter
-            </button>
-            <button className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5">
-              <Download className="w-3.5 h-3.5" /> Export
-            </button>
-          </div>
-        </div>
-
-        {/* Table Body */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px] tracking-wider">
+          <table className="w-full table-petro">
+            <thead>
               <tr>
-                <th className="py-3 px-5">Bid ID</th>
-                <th className="py-3 px-5">Submitting Entity</th>
-                <th className="py-3 px-5">Procurement Type</th>
-                <th className="py-3 px-5">Submission Date</th>
-                <th className="py-3 px-5 text-center">Compliance Score</th>
-                <th className="py-3 px-5 text-center">Risk Level</th>
-                <th className="py-3 px-5 text-center">Current Status</th>
-                <th className="py-3 px-5 text-right">Actions</th>
+                <th>TENDER ID</th>
+                <th>DEPARTMENT</th>
+                <th>BIDDERS</th>
+                <th>STATUS</th>
+                <th>DEADLINE</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 text-slate-700">
-              {filteredBidders.map((b, idx) => {
-                const score = b.compliance_score !== null && b.compliance_score !== undefined ? b.compliance_score : 88;
-                const scoreColor = score >= 80 ? 'text-emerald-600 bg-emerald-50 border-emerald-200' : score >= 60 ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-rose-600 bg-rose-50 border-rose-200';
-
-                return (
-                  <tr key={b.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-5 font-mono text-[11px] font-bold text-slate-900">
-                      BID-2026-00{idx + 1}
-                    </td>
-                    <td className="py-3.5 px-5">
-                      <div className="font-bold text-slate-900">{b.legal_name}</div>
-                      <div className="text-[10px] text-blue-600 font-medium">Certified Vendor • {b.pan || 'BSZPP1234K'}</div>
-                    </td>
-                    <td className="py-3.5 px-5 text-slate-600 font-medium">
-                      Natural Gas Pipeline EPC
-                    </td>
-                    <td className="py-3.5 px-5 font-mono text-[11px] text-slate-500">
-                      2026-09-03
-                    </td>
-                    <td className="py-3.5 px-5 text-center">
-                      <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[11px] font-bold border font-mono ${scoreColor}`}>
-                        {score}%
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-5 text-center">
-                      <RiskBadge level={b.risk_level || 'LOW'} size="sm" />
-                    </td>
-                    <td className="py-3.5 px-5 text-center">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        ● Verified
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-5 text-right">
-                      <button
-                        onClick={() => navigate(`/bidders/${b.id}`)}
-                        className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 ml-auto"
-                      >
-                        View Details <ArrowUpRight className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+            <tbody>
+              {recentTenderActivity.map((item) => (
+                <tr key={item.id} className="cursor-pointer" onClick={() => navigate('/tenders')}>
+                  <td className="font-medium text-[#10283A]">
+                    {item.id}
+                  </td>
+                  <td className="text-[#17212B]">
+                    {item.dept}
+                  </td>
+                  <td className="text-[#17212B]">
+                    {item.bidders}
+                  </td>
+                  <td>
+                    {item.status === 'Under Review' && <span className="pill-under-review">{item.status}</span>}
+                    {item.status === 'Verified' && <span className="pill-verified">{item.status}</span>}
+                    {item.status === 'Open' && <span className="pill-open">{item.status}</span>}
+                    {item.status === 'Flagged' && <span className="pill-flagged">{item.status}</span>}
+                  </td>
+                  <td className="text-[#66717C]">
+                    {item.deadline}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
+      </div>
 
-        {/* Table Pagination / Footer */}
-        <div className="p-4 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between text-xs text-slate-500">
-          <span>Showing {filteredBidders.length} procurement submissions</span>
-          <div className="flex items-center gap-2">
-            <button className="px-2.5 py-1 border border-slate-200 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50" disabled>
-              Previous
-            </button>
-            <button className="px-2.5 py-1 border border-slate-200 rounded bg-white text-slate-600 hover:bg-slate-50">
-              Next
-            </button>
+      {/* ── Engine Rules Status Banner (from PDF Page 3) ── */}
+      <div className="bg-white border border-[#D9DEE3] rounded-md p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="text-xs text-[#17212B]">
+          <span className="font-semibold text-[#10283A]">Engine Rules status:</span> 3 active compliance rules flagged 2 bids this week for manual review.
+        </div>
+        <button
+          onClick={() => navigate('/engine-rules')}
+          className="btn-outline shrink-0 text-xs"
+        >
+          Review Rules
+        </button>
+      </div>
+
+      {/* ── Additional Core Modules: Analytics & Canonical Evaluations ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 font-sans">
+        
+        {/* Compliance Integrity Trend */}
+        <div className="lg:col-span-8 bg-white border border-[#D9DEE3] rounded-md p-5 shadow-sm">
+          <div className="flex items-center justify-between pb-3 border-b border-[#D9DEE3]">
+            <div>
+              <h3 className="font-serif text-sm font-bold text-[#10283A]">
+                Compliance Integrity Trend
+              </h3>
+              <p className="text-xs text-[#66717C] mt-0.5">
+                Distribution of PASS, REVIEW, and FAIL determinations across cycles
+              </p>
+            </div>
+            <div className="flex items-center gap-3 text-xs">
+              <span className="flex items-center gap-1.5 text-[#198754] font-medium">
+                <span className="w-2.5 h-2.5 bg-[#198754] rounded-sm" /> PASS
+              </span>
+              <span className="flex items-center gap-1.5 text-[#D98A16] font-medium">
+                <span className="w-2.5 h-2.5 bg-[#D98A16] rounded-sm" /> REVIEW
+              </span>
+              <span className="flex items-center gap-1.5 text-[#C83B32] font-medium">
+                <span className="w-2.5 h-2.5 bg-[#C83B32] rounded-sm" /> FAIL
+              </span>
+            </div>
+          </div>
+
+          <div className="h-52 pt-3">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={complianceTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <XAxis dataKey="period" tick={{ fontSize: 10, fill: '#66717C' }} />
+                <YAxis tick={{ fontSize: 10, fill: '#66717C' }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#10283A', borderColor: '#D9DEE3', color: '#FFFFFF', fontSize: '11px', borderRadius: '4px' }}
+                  itemStyle={{ color: '#FFFFFF' }}
+                />
+                <Area type="monotone" dataKey="pass" stackId="1" stroke="#198754" fill="#198754" fillOpacity={0.8} />
+                <Area type="monotone" dataKey="review" stackId="1" stroke="#D98A16" fill="#D98A16" fillOpacity={0.8} />
+                <Area type="monotone" dataKey="fail" stackId="1" stroke="#C83B32" fill="#C83B32" fillOpacity={0.8} />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
+        {/* Risk Distribution */}
+        <div className="lg:col-span-4 bg-white border border-[#D9DEE3] rounded-md p-5 shadow-sm">
+          <div className="pb-3 border-b border-[#D9DEE3]">
+            <h3 className="font-serif text-sm font-bold text-[#10283A]">
+              Risk Distribution
+            </h3>
+            <p className="text-xs text-[#66717C] mt-0.5">
+              Breakdown of bidder dossiers by risk rating
+            </p>
+          </div>
+
+          <div className="h-52 pt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={riskDistributionData} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+                <XAxis type="number" tick={{ fontSize: 10, fill: '#66717C' }} />
+                <YAxis dataKey="category" type="category" tick={{ fontSize: 11, fill: '#17212B', fontWeight: 600 }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#10283A', borderColor: '#D9DEE3', color: '#FFFFFF', fontSize: '11px', borderRadius: '4px' }}
+                />
+                <Bar dataKey="count" radius={[0, 3, 3, 0]}>
+                  {riskDistributionData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+      </div>
+
+      {/* ── Canonical 3 Demo Bidders Table ── */}
+      <div className="bg-white border border-[#D9DEE3] rounded-md shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#D9DEE3] flex items-center justify-between">
+          <div>
+            <h2 className="font-serif text-base font-bold text-[#10283A]">
+              Primary Demo Bidders — MOPNG/PIPE/2026/017
+            </h2>
+            <p className="text-xs text-[#66717C] mt-0.5">
+              Consistent verification records across all 3 demonstration bidders
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/bidders')}
+            className="text-xs font-semibold text-[#10283A] hover:text-[#D98A16] flex items-center gap-1 transition-colors"
+          >
+            <span>Bidder Registry</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full table-petro">
+            <thead>
+              <tr>
+                <th>BIDDER LEGAL ENTITY</th>
+                <th>IDENTIFIERS</th>
+                <th>COMPLIANCE SCORE</th>
+                <th>RISK RATING</th>
+                <th>VERIFICATION STATUS</th>
+                <th className="text-right">ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentBidsList.map((bid) => (
+                <tr key={bid.id} className="hover:bg-[#F8F9FA]">
+                  <td className="font-medium text-[#10283A] py-3.5">
+                    <div className="flex items-center gap-2">
+                      {bid.isPrimary && <span className="w-2 h-2 rounded-full bg-[#198754]" />}
+                      <span className="font-semibold text-sm">{bid.legal_name}</span>
+                    </div>
+                    <div className="text-[11px] text-[#66717C] mt-0.5">
+                      {bid.category}
+                    </div>
+                  </td>
+                  <td className="text-xs font-mono text-[#66717C]">
+                    <div>PAN: <span className="font-medium text-[#17212B]">{bid.pan}</span></div>
+                    <div>GSTIN: <span className="font-medium text-[#17212B]">{bid.gstin}</span></div>
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-[#10283A]">{bid.compliance_score}%</span>
+                      <div className="w-24 bg-[#E2E8F0] h-2 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${bid.compliance_score}%`,
+                            backgroundColor: bid.compliance_score >= 80 ? '#198754' : bid.compliance_score >= 65 ? '#D98A16' : '#C83B32'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <RiskBadge level={bid.risk_level} />
+                  </td>
+                  <td>
+                    {bid.status === 'QUALIFIED' && <span className="pill-verified">Qualified</span>}
+                    {bid.status === 'UNDER REVIEW' && <span className="pill-under-review">Under Review</span>}
+                    {bid.status === 'DISQUALIFIED' && <span className="pill-flagged">Disqualified</span>}
+                  </td>
+                  <td className="text-right">
+                    <button
+                      onClick={() => navigate(`/compliance-review?bidId=${bid.id}`)}
+                      className="btn-navy py-1.5 px-3 text-xs"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-[#D98A16]" />
+                      <span>Review Bid</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>

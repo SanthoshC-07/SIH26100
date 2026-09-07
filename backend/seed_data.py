@@ -52,7 +52,7 @@ def seed():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
 
-    logger.info("Seeding Users (1 Admin, 1 Senior Procurement Officer)...")
+    logger.info("Seeding Users (1 Admin, 1 Senior Procurement Officer, 1 Registered Bidder)...")
     
     admin_user = User(
         name="Sunil Verma, Chief Procurement Officer",
@@ -68,52 +68,64 @@ def seed():
         name="Rajesh Sharma, Senior Procurement Officer",
         email="officer@gem.gov.in",
         username="procurement_officer",
-        password_hash=get_password_hash("password123"),
+        password_hash=get_password_hash("officer123"),
         role="PROCUREMENT_OFFICER",
         department="GAIL / MoPNG Pipeline Tender Evaluation Cell, New Delhi"
     )
     db.add(officer_user)
+
+    bidder_user = User(
+        name="Praveen B S, EPC Contractor",
+        email="vendor@company.com",
+        username="bidder",
+        password_hash=get_password_hash("bidder123"),
+        role="BIDDER",
+        department="Praveen B S Engineering Services - Tender & Bidding Division"
+    )
+    db.add(bidder_user)
+
     db.commit()
     db.refresh(admin_user)
     db.refresh(officer_user)
+    db.refresh(bidder_user)
 
     # -------------------------------------------------------------
     # 3 REALISTIC PETROLEUM & NATURAL GAS PIPELINE TENDERS
     # -------------------------------------------------------------
     logger.info("Seeding 3 Realistic Petroleum & Pipeline Tenders...")
 
-    t1_doc = os.path.join(settings.UPLOAD_DIR, "Tender_GAIL_2026_PL_NC_4182.pdf")
+    t1_doc = os.path.join(settings.UPLOAD_DIR, "Tender_MOPNG_PIPE_2026_017.pdf")
     create_sample_pdf(
         t1_doc,
-        "GAIL TENDER: GAIL/2026/PL-NC/4182 - NATURAL GAS PIPELINE EPC",
+        "MOPNG TENDER: MOPNG/PIPE/2026/017 - NATURAL GAS TRANSMISSION PIPELINE",
         [
             ("1. Scope of Work", "Laying, Testing, and Commissioning of 150 km, 24-inch Outer Diameter API 5L Grade X70 Cross-Country Natural Gas Transmission Pipeline including Sectionalizing Valve Stations and Intermediate Pigging Stations."),
-            ("2. Check 1: GST Statutory Registration", "Bidder must possess valid and active GSTIN registration in the relevant State/UT and submit latest GSTR-3B filings."),
-            ("3. Check 2: PAN & Identity", "Bidder entity must hold a valid Permanent Account Number (PAN) issued by Income Tax Department matching corporate legal identity."),
-            ("4. Check 3: Financial Turnover", "Average Annual Financial Turnover of the bidder during the last 3 preceding financial years must be at least INR 10.00 Crore."),
-            ("5. Check 4: Oil & Gas Experience", "Bidder must possess proven prior execution experience in EPC / construction projects in Petroleum, Natural Gas, Refinery, or Hydrocarbon pipeline sectors."),
-            ("6. Check 5: Similar Pipeline Experience", "Bidder must have successfully constructed and commissioned at least one cross-country high-pressure natural gas transmission pipeline of minimum 100 km length (24-inch or higher) in the last 7 years."),
-            ("7. Check 6: Technical Manpower", "Bidder must commit and deploy a minimum of 5 qualified pipeline engineers (B.Tech / B.E. Mechanical / Pipeline / NDT Level II) with at least 8 years of relevant site experience."),
-            ("8. Check 7: HSE & Safety Compliance", "Bidder must maintain certified Occupational Health & Safety (ISO 45001) and Environmental Management (ISO 14001) systems with a zero-fatality site safety policy.")
+            ("2. Check 1 (R01): GST Statutory Registration", "Bidder must possess valid and active GSTIN registration in the relevant State/UT and submit latest GSTR-3B filings."),
+            ("3. Check 2 (R02): PAN & Identity", "Bidder entity must hold a valid Permanent Account Number (PAN) issued by Income Tax Department matching corporate legal identity."),
+            ("4. Check 3 (R03): Financial Turnover", "Average Annual Financial Turnover of the bidder during the last 3 preceding financial years (FY 2023-24, FY 2024-25, FY 2025-26) must be at least INR 25.00 Crore."),
+            ("5. Check 4 (R04): Oil & Gas Experience", "Bidder must possess proven prior execution experience of minimum 7 years in EPC / construction projects in Petroleum, Natural Gas, Refinery, or Hydrocarbon pipeline sectors."),
+            ("6. Check 5 (R05): Similar Pipeline Experience", "Bidder must have successfully constructed and commissioned at least one cross-country high-pressure natural gas transmission pipeline of minimum 100 km length (24-inch or higher) in the last 7 years."),
+            ("7. Check 6 (R06): Technical Manpower", "Bidder must commit and deploy a minimum of 5 qualified pipeline engineers (B.Tech / B.E. Mechanical / Pipeline / NDT Level II) with at least 8 years of relevant site experience."),
+            ("8. Check 7 (R07): HSE & Safety Compliance", "Bidder must maintain certified Occupational Health & Safety (ISO 45001) and Environmental Management (ISO 14001) systems with a zero-fatality site safety policy.")
         ]
     )
 
     tender1 = Tender(
-        tender_number="GAIL/2026/PL-NC/4182",
-        title="Construction of 150 km 24-inch Cross-Country Natural Gas Transmission Pipeline",
-        issuing_organization="GAIL (India) Limited",
+        tender_number="MOPNG/PIPE/2026/017",
+        title="Construction of Natural Gas Transmission Pipeline",
+        issuing_organization="Ministry of Petroleum & Natural Gas / GAIL",
         ministry="Ministry of Petroleum & Natural Gas",
         sector="OIL_AND_GAS",
         tender_type="PIPELINE_PROCUREMENT",
         project_type="PIPELINE_CONSTRUCTION",
-        pipeline_type="CROSS_COUNTRY_PIPELINE",
-        location="Vijaipur-Auraiya Section, National Gas Grid",
-        description="EPC contract for 150 km, 24-inch NB API 5L X70 cross-country natural gas pipeline laying, HDD river crossings, SV stations, and pre-commissioning.",
+        pipeline_type="NATURAL_GAS_TRANSMISSION",
+        location="National Gas Grid, Vijaipur-Auraiya Corridor, India",
+        description="EPC contract for 150 km, 24-inch NB API 5L X70 cross-country natural gas transmission pipeline laying, HDD river crossings, SV stations, and pre-commissioning.",
         estimated_value=2400000000.0,
         tender_issue_date=datetime.now(timezone.utc) - timedelta(days=12),
         submission_deadline=datetime.now(timezone.utc) + timedelta(days=18),
         evaluation_date=datetime.now(timezone.utc) + timedelta(days=25),
-        status="ACTIVE",
+        status="UNDER_EVALUATION",
         raw_pdf_path=t1_doc,
         created_by=officer_user.id
     )
@@ -125,7 +137,7 @@ def seed():
         "IOCL TENDER: IOCL/2026/PL-VALVES/5810",
         [
             ("1. Scope of Work", "Supply & Installation of API 6D Full-Bore Ball Valves and Gas Turbine Compressor Skids for Koyali-Ahmedabad Product Pipeline."),
-            ("2. Statutory & Financial", "Active GSTIN, PAN, and minimum average annual turnover of INR 10.00 Crore."),
+            ("2. Statutory & Financial", "Active GSTIN, PAN, and minimum average annual turnover of INR 25.00 Crore."),
             ("3. Experience", "Prior execution in Petroleum pipeline valve stations."),
             ("4. Check 7: OEM Manufacturer Authorization", "Manufacturer Authorization Form (MAF) from certified API 6D valve manufacturer explicitly referencing Tender No: IOCL/2026/PL-VALVES/5810.")
         ]
@@ -158,7 +170,7 @@ def seed():
         "ONGC TENDER: ONGC/2026/MII/3320",
         [
             ("1. Scope of Work", "Construction of 80 km Offshore to Onshore Gas Feeder Line at Hazira."),
-            ("2. Statutory & Financial", "Active GSTIN, PAN, and minimum average annual turnover of INR 10.00 Crore."),
+            ("2. Statutory & Financial", "Active GSTIN, PAN, and minimum average annual turnover of INR 25.00 Crore."),
             ("3. Experience & Manpower", "Oil & Gas subsea/onshore pipeline experience and qualified engineering manpower."),
             ("4. Check 7: Make in India Local Content", "Minimum 50% Local Content requirement (Class-I Local Supplier under MoPNG PPP-MII policy).")
         ]
@@ -191,15 +203,15 @@ def seed():
     db.refresh(tender3)
 
     # -------------------------------------------------------------
-    # 7 CORE REQUIREMENTS FOR TENDER 1 (GAIL PIPELINE)
+    # 7 CORE REQUIREMENTS FOR TENDER 1 (MOPNG/PIPE/2026/017)
     # -------------------------------------------------------------
-    logger.info("Adding 7 Core Requirements to Tender 1...")
+    logger.info("Adding 7 Core Requirements (R01-R07) to Tender 1...")
     reqs_t1 = [
         Requirement(
             tender_id=tender1.id,
             category="GST",
-            clause_number="Cl-1.1",
-            original_text="Check 1: Bidder must possess valid and active GSTIN registration in the relevant State/UT and submit latest GSTR-3B filings.",
+            clause_number="R01",
+            original_text="Check 1 (R01): Bidder must possess valid and active GSTIN registration in the relevant State/UT and submit latest GSTR-3B filings.",
             normalized_requirement="Active GSTIN Registration with latest monthly GSTR-3B filings.",
             mandatory=True,
             threshold=None,
@@ -211,8 +223,8 @@ def seed():
         Requirement(
             tender_id=tender1.id,
             category="PAN",
-            clause_number="Cl-1.2",
-            original_text="Check 2: Bidder entity must hold a valid Permanent Account Number (PAN) issued by Income Tax Department with matching legal corporate identity.",
+            clause_number="R02",
+            original_text="Check 2 (R02): Bidder entity must hold a valid Permanent Account Number (PAN) issued by Income Tax Department with matching legal corporate identity.",
             normalized_requirement="Valid PAN issued to exact legal entity.",
             mandatory=True,
             threshold=None,
@@ -224,11 +236,11 @@ def seed():
         Requirement(
             tender_id=tender1.id,
             category="TURNOVER",
-            clause_number="Cl-2.1",
-            original_text="Check 3: Average Annual Financial Turnover of the bidder during the last 3 preceding financial years (FY 2022-23, FY 2023-24, FY 2024-25) must be at least INR 10.00 Crore.",
-            normalized_requirement="Average Annual Turnover >= INR 10.00 Crore over last 3 FYs.",
+            clause_number="R03",
+            original_text="Check 3 (R03): Average Annual Financial Turnover of the bidder during the last 3 preceding financial years (FY 2023-24, FY 2024-25, FY 2025-26) must be at least INR 25.00 Crore.",
+            normalized_requirement="Average Annual Turnover >= INR 25.00 Crore over last 3 FYs.",
             mandatory=True,
-            threshold=100000000.0,
+            threshold=250000000.0,
             threshold_unit="INR",
             period="LAST_3_FINANCIAL_YEARS",
             evidence_required=["AUDITED_BALANCE_SHEETS", "CA_CERTIFIED_TURNOVER_STATEMENT"],
@@ -237,12 +249,13 @@ def seed():
         Requirement(
             tender_id=tender1.id,
             category="OIL_GAS_EXPERIENCE",
-            clause_number="Cl-3.1",
-            original_text="Check 4: Bidder must possess proven prior execution experience in EPC / construction projects in Petroleum, Natural Gas, Refinery, or Hydrocarbon pipeline sectors.",
-            normalized_requirement="Prior EPC/construction experience in Petroleum / Natural Gas / Hydrocarbon sector.",
+            clause_number="R04",
+            original_text="Check 4 (R04): Bidder must possess proven prior execution experience of >= 7 years in EPC / construction projects in Petroleum, Natural Gas, Refinery, or Hydrocarbon pipeline sectors.",
+            normalized_requirement="Prior EPC/construction experience >= 7 years in Petroleum / Natural Gas / Hydrocarbon sector.",
             mandatory=True,
-            threshold=None,
-            threshold_unit=None,
+            threshold=7.0,
+            threshold_unit="YEARS",
+            required_years=7.0,
             required_sector="OIL_AND_GAS",
             period="LAST_7_YEARS",
             evidence_required=["EXPERIENCE_CERTIFICATE", "CLIENT_COMPLETION_REPORT"],
@@ -251,8 +264,8 @@ def seed():
         Requirement(
             tender_id=tender1.id,
             category="SIMILAR_PIPELINE_EXPERIENCE",
-            clause_number="Cl-3.2",
-            original_text="Check 5: Bidder must have successfully constructed and commissioned at least one cross-country high-pressure natural gas transmission pipeline of minimum 100 km length (24-inch or higher) in the last 7 years.",
+            clause_number="R05",
+            original_text="Check 5 (R05): Bidder must have successfully constructed and commissioned at least one cross-country high-pressure natural gas transmission pipeline of minimum 100 km length (24-inch or higher) in the last 7 years.",
             normalized_requirement="Execution of >= 100 km cross-country natural gas transmission pipeline (>= 24-inch OD).",
             mandatory=True,
             threshold=100.0,
@@ -265,8 +278,8 @@ def seed():
         Requirement(
             tender_id=tender1.id,
             category="TECHNICAL_MANPOWER",
-            clause_number="Cl-4.1",
-            original_text="Check 6: Bidder must commit and deploy a minimum of 5 qualified pipeline engineers (B.Tech / B.E. Mechanical / Pipeline / NDT Level II) with at least 8 years of relevant site experience.",
+            clause_number="R06",
+            original_text="Check 6 (R06): Bidder must commit and deploy a minimum of 5 qualified pipeline engineers (B.Tech / B.E. Mechanical / Pipeline / NDT Level II) with at least 8 years of relevant site experience.",
             normalized_requirement="Minimum 5 qualified pipeline engineers with >= 8 years relevant site experience.",
             mandatory=True,
             threshold=5.0,
@@ -280,8 +293,8 @@ def seed():
         Requirement(
             tender_id=tender1.id,
             category="HSE_SAFETY",
-            clause_number="Cl-5.1",
-            original_text="Check 7 (Configurable): Bidder must maintain certified Occupational Health & Safety (ISO 45001) and Environmental Management (ISO 14001) systems with a zero-fatality site safety policy.",
+            clause_number="R07",
+            original_text="Check 7 (R07): Bidder must maintain certified Occupational Health & Safety (ISO 45001) and Environmental Management (ISO 14001) systems with a zero-fatality site safety policy.",
             normalized_requirement="Certified ISO 45001:2018 and ISO 14001:2015 with zero-fatality HSE site policy.",
             mandatory=True,
             threshold=None,
@@ -301,210 +314,215 @@ def seed():
     logger.info("Seeding 4 Realistic Petroleum Bidders with Project & Manpower Records...")
 
     # =============================================================
-    # BIDDER 1: LARSEN & TOUBRO HYDROCARBON (PASS - LOW RISK, SCORE: 100%)
+    # BIDDER 1: PRAVEEN B S ENGINEERING SERVICES (PASS/REVIEW - SCORE: 86%, RISK: MEDIUM)
     # =============================================================
     b1 = Bidder(
         tender_id=tender1.id,
-        legal_name="Larsen & Toubro Hydrocarbon Engineering Limited",
-        trade_name="L&T Hydrocarbon",
-        pan="AAACL1234F",
-        gstin="27AAACL1234F1Z5",
-        registered_address="L&T House, Ballard Estate, Mumbai, Maharashtra 400001",
-        contact_information={"email": "tenders.hydrocarbon@larsentoubro.com", "phone": "+91 22 6752 5656"},
+        legal_name="PRAVEEN B S ENGINEERING SERVICES",
+        trade_name="Praveen B S Engineering Services",
+        pan="BSZPP1234K",
+        gstin="29MOCKP1234M1Z5",
+        registered_address="#42, Pipeline Corridor Industrial Estate, Peenya, Bengaluru, Karnataka 560058",
+        contact_information={"email": "contact@praveen-engineering.com", "phone": "+91 80 2839 4410"},
         bidder_type="INDIAN_EPC_CONTRACTOR",
         country="INDIA",
-        oil_gas_experience_years=35.0,
-        pipeline_experience_years=28.0,
-        udyam_number="UDYAM-MH-12-0098412",
-        cin="L29100MH1946PLC004768",
-        email="tenders.hydrocarbon@larsentoubro.com",
-        phone="+91 22 6752 5656",
-        contact_person="Alok K. Sengupta (Executive VP - Pipeline Projects)",
-        status="SUBMITTED"
+        oil_gas_experience_years=9.0,
+        pipeline_experience_years=9.0,
+        udyam_number="UDYAM-KA-03-0087412",
+        cin="U45200KA2015PTC081290",
+        email="contact@praveen-engineering.com",
+        phone="+91 80 2839 4410",
+        contact_person="Praveen B S (Managing Director & Chief Pipeline Engineer)",
+        status="SUBMITTED",
+        user_id=bidder_user.id
     )
     db.add(b1)
     db.commit()
     db.refresh(b1)
 
+    bidder_user.bidder_id = b1.id
+    db.commit()
+
     # Bid Submission for Bidder 1
     bid1 = Bid(
         tender_id=tender1.id,
         bidder_id=b1.id,
-        bid_reference_number="BID-GAIL-2026-LT-001",
+        bid_reference_number="BID-MOPNG-2026-PBS-001",
         submission_date=datetime.now(timezone.utc) - timedelta(days=2),
-        technical_bid_status="QUALIFIED",
+        technical_bid_status="UNDER_EVALUATION",
         financial_bid_amount=2320000000.0,
         currency="INR",
-        remarks="Complete technical & financial bid submitted with all 7 compliance certificates."
+        remarks="Complete technical & financial bid submitted with evidence for checks R01 to R07."
     )
     db.add(bid1)
 
     # Structured BidderProject records for Bidder 1
     p1_1 = BidderProject(
         bidder_id=b1.id,
-        project_name="GAIL Jagdishpur-Haldia-Bokaro-Dhamra Gas Pipeline Phase-II (Section 3)",
+        project_name="Natural Gas Transmission Pipeline Project (Section 4)",
         client_name="GAIL (India) Limited",
         client_type="PUBLIC_SECTOR_UNDERTAKING",
-        sector="NATURAL_GAS",
+        sector="OIL_AND_GAS",
         project_type="PIPELINE_CONSTRUCTION",
-        pipeline_type="CROSS_COUNTRY_PIPELINE",
-        pipeline_length_km=165.0,
-        pipeline_diameter="24 inch NB API 5L X70",
-        project_value=2850000000.0,
+        pipeline_type="NATURAL_GAS_TRANSMISSION",
+        pipeline_length_km=135.0,
+        pipeline_diameter="24 Inch NB API 5L X70",
+        project_value=820000000.0,
         currency="INR",
-        location="Bihar & West Bengal",
+        location="Gujarat & Madhya Pradesh Corridor",
         start_date=datetime.now(timezone.utc) - timedelta(days=365*3),
-        completion_date=datetime.now(timezone.utc) - timedelta(days=365),
-        scope_of_work="EPC Laying, HDD River Crossings, SV Stations, Hydrotesting, and Commissioning",
+        completion_date=datetime.now(timezone.utc) - timedelta(days=175),
+        scope_of_work="EPC Contractor for 135 KM 24-inch natural gas transmission pipeline laying, HDD river crossings, SV stations, and pre-commissioning",
         bidder_role="EPC_CONTRACTOR",
-        contract_reference="GAIL/JHBDPL/SEC-3/2021/04"
+        contract_reference="GAIL/NGPL/SEC-4/2022/09"
     )
     p1_2 = BidderProject(
         bidder_id=b1.id,
-        project_name="IOCL Koyali Refinery Crude & Gas Pipeline Interconnection",
+        project_name="IOCL Refinery Crude Oil Feeder Line",
         client_name="Indian Oil Corporation Limited",
         client_type="PUBLIC_SECTOR_UNDERTAKING",
-        sector="PETROLEUM",
+        sector="OIL_AND_GAS",
         project_type="PIPELINE_EPC",
         pipeline_type="CRUDE_OIL",
-        pipeline_length_km=120.0,
-        pipeline_diameter="28 inch NB API 5L X65",
-        project_value=1950000000.0,
+        pipeline_length_km=85.0,
+        pipeline_diameter="18 Inch NB API 5L X65",
+        project_value=450000000.0,
         currency="INR",
         location="Gujarat",
         start_date=datetime.now(timezone.utc) - timedelta(days=365*4),
         completion_date=datetime.now(timezone.utc) - timedelta(days=365*2),
-        scope_of_work="Pipeline construction and pump station integration",
+        scope_of_work="Crude oil pipeline laying and pump station integration",
         bidder_role="MAIN_CONTRACTOR",
-        contract_reference="IOCL/KOY/PL/2020/12"
+        contract_reference="IOCL/REF/PL/2021/03"
     )
     db.add(p1_1)
     db.add(p1_2)
 
-    # Structured BidderPersonnel records for Bidder 1
+    # Structured BidderPersonnel records for Bidder 1 (5 engineers >= 8 years)
     staff_b1 = [
-        BidderPersonnel(bidder_id=b1.id, name="Rajesh Sharma", designation="Lead Pipeline Project Manager", qualification="B.Tech Mechanical", specialization="Cross-Country Gas Transmission", years_of_experience=14.0, pipeline_experience_years=14.0, certifications=["PMP", "API 1169"]),
-        BidderPersonnel(bidder_id=b1.id, name="Vikram Mehta", designation="Chief Welding & NDT Specialist", qualification="B.E. Metallurgy", specialization="Automatic Welding & Radiography", years_of_experience=12.0, pipeline_experience_years=12.0, certifications=["NDT Level III", "CSWIP 3.1"]),
-        BidderPersonnel(bidder_id=b1.id, name="Amit Patel", designation="Senior Pipeline Engineer", qualification="B.Tech Mechanical", specialization="HDD River Crossings & Trenching", years_of_experience=10.0, pipeline_experience_years=10.0, certifications=["NDT Level II"]),
-        BidderPersonnel(bidder_id=b1.id, name="Sanjay Gupta", designation="Senior QA/QC Pipeline Inspector", qualification="B.E. Mechanical", specialization="Hydrotesting & Pipeline Integrity", years_of_experience=11.0, pipeline_experience_years=11.0, certifications=["ISO 9001 Lead Auditor"]),
-        BidderPersonnel(bidder_id=b1.id, name="Dharmendra Rao", designation="Senior Commissioning Engineer", qualification="B.Tech Chemical", specialization="Gas Pipeline Pigging & Drying", years_of_experience=9.0, pipeline_experience_years=9.0, certifications=["Safety in Hydrocarbons"]),
-        BidderPersonnel(bidder_id=b1.id, name="Nitin Deshmukh", designation="Lead Site Safety Officer", qualification="Diploma Industrial Safety", specialization="Petroleum Site HSE & ISO 45001", years_of_experience=10.0, pipeline_experience_years=10.0, certifications=["NEBOSH IGC", "ISO 45001 Lead Auditor"])
+        BidderPersonnel(bidder_id=b1.id, name="Praveen B S", designation="Project Engineer", qualification="B.Tech Mechanical", specialization="Natural Gas Cross-Country Pipeline", years_of_experience=12.0, pipeline_experience_years=9.0, certifications=["PMP", "API 1169"]),
+        BidderPersonnel(bidder_id=b1.id, name="Ravi Kumar", designation="Pipeline Engineer", qualification="B.Tech Mechanical", specialization="High-Pressure Transmission Piping & HDD", years_of_experience=11.0, pipeline_experience_years=10.0, certifications=["NDT Level II"]),
+        BidderPersonnel(bidder_id=b1.id, name="Suresh Sharma", designation="Chief Welding & NDT Specialist", qualification="B.E. Metallurgy", specialization="API 1104 Automatic Welding & Radiography", years_of_experience=10.0, pipeline_experience_years=9.0, certifications=["NDT Level III", "CSWIP 3.1"]),
+        BidderPersonnel(bidder_id=b1.id, name="Ananya Rao", designation="QA/QC Pipeline Inspector", qualification="B.Tech Mechanical", specialization="Hydrotesting & Pipeline Integrity", years_of_experience=9.0, pipeline_experience_years=8.0, certifications=["ISO 9001 Lead Auditor"]),
+        BidderPersonnel(bidder_id=b1.id, name="Vikram Patel", designation="Lead Site Safety Officer", qualification="Diploma Industrial Safety", specialization="Petroleum Site Safety & ISO 45001", years_of_experience=9.0, pipeline_experience_years=8.0, certifications=["NEBOSH IGC", "ISO 45001 Lead Auditor"])
     ]
     for s in staff_b1:
         db.add(s)
 
     # Documents for Bidder 1
-    b1_stat_pdf = os.path.join(settings.UPLOAD_DIR, "LT_Hydrocarbon_Statutory_GST_PAN.pdf")
-    b1_fin_pdf = os.path.join(settings.UPLOAD_DIR, "LT_Hydrocarbon_Audited_Turnover_Financials.pdf")
-    b1_exp_pdf = os.path.join(settings.UPLOAD_DIR, "LT_Hydrocarbon_165km_Pipeline_Experience.pdf")
-    b1_man_pdf = os.path.join(settings.UPLOAD_DIR, "LT_Hydrocarbon_Key_Engineers_CVs.pdf")
-    b1_hse_pdf = os.path.join(settings.UPLOAD_DIR, "LT_Hydrocarbon_HSE_ISO45001_Policy.pdf")
+    b1_stat_pdf = os.path.join(settings.UPLOAD_DIR, "Praveen_Statutory_GST_PAN.pdf")
+    b1_fin_pdf = os.path.join(settings.UPLOAD_DIR, "Financial_Statement_Praveen.pdf")
+    b1_exp_pdf = os.path.join(settings.UPLOAD_DIR, "Pipeline_Completion_Certificate_Praveen.pdf")
+    b1_oil_pdf = os.path.join(settings.UPLOAD_DIR, "Oil_Gas_Experience_Certificate.pdf")
+    b1_man_pdf = os.path.join(settings.UPLOAD_DIR, "Praveen_Engineers_CVs.pdf")
+    b1_hse_pdf = os.path.join(settings.UPLOAD_DIR, "Praveen_HSE_ISO45001_Policy.pdf")
 
     create_sample_pdf(
         b1_stat_pdf,
-        "LARSEN & TOUBRO HYDROCARBON - STATUTORY REGISTRATION CERTIFICATES",
+        "PRAVEEN B S ENGINEERING SERVICES - STATUTORY REGISTRATION CERTIFICATES",
         [
-            ("1. Legal Entity & GSTIN Registration", "Legal Name: Larsen & Toubro Hydrocarbon Engineering Limited\nTrade Name: L&T Hydrocarbon\nGSTIN: 27AAACL1234F1Z5 (Maharashtra)\nRegistration Date: 01/07/2017\nStatus: ACTIVE\nTaxpayer Type: Regular"),
-            ("2. Permanent Account Number (PAN)", "PAN: AAACL1234F\nName as per ITD: LARSEN & TOUBRO HYDROCARBON ENGINEERING LIMITED\nCategory: Company | Status: Active & Operational"),
-            ("3. Udyam Registration", "UDYAM Registration No: UDYAM-MH-12-0098412 | Major Activity: Heavy Engineering / Energy Infrastructure")
+            ("1. Legal Entity & GSTIN Registration", "Legal Name: PRAVEEN B S ENGINEERING SERVICES\nTrade Name: Praveen B S Engineering Services\nGSTIN: 29MOCKP1234M1Z5 (Karnataka)\nRegistration Date: 01/07/2017\nStatus: ACTIVE\nTaxpayer Type: Regular"),
+            ("2. Permanent Account Number (PAN)", "PAN: BSZPP1234K\nName as per ITD: PRAVEEN B S ENGINEERING SERVICES\nCategory: Company | Status: Active & Operational"),
+            ("3. Udyam Registration", "UDYAM Registration No: UDYAM-KA-03-0087412 | Major Activity: Heavy Engineering / Petroleum Pipeline Construction")
         ]
     )
 
     create_sample_pdf(
         b1_fin_pdf,
-        "LARSEN & TOUBRO HYDROCARBON - CA AUDITED FINANCIAL TURNOVER",
+        "PRAVEEN B S ENGINEERING SERVICES - CA AUDITED FINANCIAL TURNOVER",
         [
-            ("1. Independent Chartered Accountant Certificate", "We have audited the books of accounts of M/s Larsen & Toubro Hydrocarbon Engineering Limited. The annual turnover is certified as follows:"),
-            ("2. Financial Year Breakdown", "FY 2022-23: INR 18.50 Crore\nFY 2023-24: INR 22.00 Crore\nFY 2024-25: INR 24.50 Crore"),
-            ("3. Three-Year Arithmetic Average", "Average Annual Turnover = (18.50 + 22.00 + 24.50) / 3 = INR 21.67 Crore (Surplus: INR 11.67 Crore above requirement).")
+            ("1. Independent Chartered Accountant Certificate", "We have audited the books of accounts of M/s PRAVEEN B S ENGINEERING SERVICES. The annual turnover is certified as follows:"),
+            ("2. Financial Year Breakdown", "FY 2023-24: INR 30 Crore\nFY 2024-25: INR 27 Crore\nFY 2025-26: INR 24 Crore"),
+            ("3. Three-Year Arithmetic Average", "The bidder reported annual turnover of INR 30 Crore for FY 2023-24, INR 27 Crore for FY 2024-25 and INR 24 Crore for FY 2025-26.\nAverage Annual Turnover = (30 + 27 + 24) / 3 = INR 27 Crore (Exceeds mandatory tender requirement of INR 25 Crore).")
         ]
     )
 
     create_sample_pdf(
         b1_exp_pdf,
-        "LARSEN & TOUBRO HYDROCARBON - PIPELINE & HYDROCARBON COMPLETION CERTIFICATE",
+        "PRAVEEN B S ENGINEERING SERVICES - PIPELINE COMPLETION CERTIFICATE",
         [
-            ("1. GAIL Jagdishpur-Haldia Gas Pipeline Phase-II", "Client: GAIL (India) Limited | Scope: EPC Laying of 165 km, 24-inch Outer Diameter API 5L X70 cross-country natural gas transmission pipeline, HDD crossings, and 4 Sectionalizing Valve stations.\nCompletion Date: November 2023 | Project Value: INR 285.00 Crore | Status: Successfully Commissioned and under commercial gas flow."),
-            ("2. IOCL Koyali Refinery Hydrocarbon Line", "Client: Indian Oil Corporation Limited | Execution of high-pressure petroleum refinery feeder pipelines and gas metering terminals.")
+            ("1. Client Completion Certificate", "Client: GAIL (India) Limited\nProject: Natural Gas Transmission Pipeline Project (Section 4)\nLength: 135 KM | Diameter: 24 Inch NB API 5L X70\nContract Value: INR 82 Crore\nCompletion Date: 15-03-2025\nRole: EPC Contractor\nStatus: Completed 135 KM natural gas transmission pipeline successfully commissioned.")
+        ]
+    )
+
+    create_sample_pdf(
+        b1_oil_pdf,
+        "PRAVEEN B S ENGINEERING SERVICES - OIL & GAS EXPERIENCE SUMMARY",
+        [
+            ("1. Prior Oil & Gas Pipeline Sector Experience", "Total verified experience in Petroleum, Natural Gas, and Hydrocarbon sector: 9 Years.\nCompleted Projects: 3 major EPC pipeline projects for GAIL, IOCL, and ONGC.\nSemantic Relevance: High - Hydrocarbon and Cross-Country Natural Gas Pipelines.")
         ]
     )
 
     create_sample_pdf(
         b1_man_pdf,
-        "LARSEN & TOUBRO HYDROCARBON - TECHNICAL MANPOWER & CVs",
+        "PRAVEEN B S ENGINEERING SERVICES - KEY TECHNICAL MANPOWER DOSSIER",
         [
-            ("1. Key Senior Engineering Personnel", "1. Rajesh Sharma (Lead Pipeline Project Manager) - 14 years experience in cross-country gas pipelines.\n2. Vikram Mehta (Chief Welding & NDT Specialist - Level III) - 12 years experience.\n3. Amit Patel (Senior Pipeline Engineer - B.Tech Mechanical) - 10 years experience.\n4. Sanjay Gupta (Senior QA/QC Pipeline Inspector) - 11 years experience.\n5. Dharmendra Rao (Senior Commissioning Engineer) - 9 years experience.\n6. Nitin Deshmukh (Lead Safety Officer - NEBOSH / ISO 45001) - 10 years experience.")
+            ("1. Technical Engineering Personnel", "1. Praveen B S (Project Engineer) - B.Tech Mechanical - 12 Years total exp, 9 Years pipeline exp\n2. Ravi Kumar (Pipeline Engineer) - B.Tech Mechanical - 11 Years total exp, 10 Years pipeline exp\n3. Suresh Sharma (Welding & NDT Specialist) - B.E. Metallurgy - 10 Years total exp, 9 Years pipeline exp\n4. Ananya Rao (QA/QC Pipeline Inspector) - B.Tech Mechanical - 9 Years total exp, 8 Years pipeline exp\n5. Vikram Patel (Lead Site Safety Officer) - Diploma Industrial Safety - 9 Years total exp, 8 Years pipeline exp\nTotal qualifying pipeline engineers: 5 with >= 8 years relevant experience.")
         ]
     )
 
     create_sample_pdf(
         b1_hse_pdf,
-        "LARSEN & TOUBRO HYDROCARBON - HSE & SAFETY CERTIFICATION",
+        "PRAVEEN B S ENGINEERING SERVICES - HSE COMPLIANCE & SAFETY DOSSIER",
         [
-            ("1. Occupational Health & Safety System", "Certified ISO 45001:2018 (Certificate No: TUV-IND-45001-89214, Valid through Dec 2027)."),
-            ("2. Environmental Management System", "Certified ISO 14001:2015 (Certificate No: TUV-IND-14001-44102, Valid through Nov 2027)."),
-            ("3. Site Safety Declaration", "Zero Lost Time Injury (LTI) track record across 10 million safe man-hours on gas transmission pipeline projects.")
+            ("1. Occupational Health & Environmental Certifications", "ISO 45001:2018 (Occupational Health and Safety Management System)\nISO 14001:2015 (Environmental Management System)\nCertificate Valid Until: 31-12-2026\nSafety Record: Zero-fatality policy maintained on all pipeline sites.")
         ]
     )
 
     docs_b1 = [
-        Document(bidder_id=b1.id, tender_id=tender1.id, document_name="Statutory_Registration_Certificates.pdf", file_path=b1_stat_pdf, document_type="GST_CERTIFICATE", page_count=1, extracted_text="Larsen & Toubro Hydrocarbon Engineering Limited\nGSTIN: 27AAACL1234F1Z5\nPAN: AAACL1234F\nUDYAM: UDYAM-MH-12-0098412"),
-        Document(bidder_id=b1.id, tender_id=tender1.id, document_name="Audited_Turnover_Financials.pdf", file_path=b1_fin_pdf, document_type="FINANCIAL_STATEMENT", page_count=1, extracted_text="FY 2022-23: 18.50 Crore\nFY 2023-24: 22.00 Crore\nFY 2024-25: 24.50 Crore\nAverage: 21.67 Cr"),
-        Document(bidder_id=b1.id, tender_id=tender1.id, document_name="165km_Pipeline_Experience_Certificate.pdf", file_path=b1_exp_pdf, document_type="PIPELINE_PROJECT_DOCUMENT", page_count=1, extracted_text="Laying of 165 km, 24-inch natural gas transmission pipeline for GAIL (India) Limited. Successfully completed and commissioned.\nIOCL Koyali refinery oil and gas project experience."),
-        Document(bidder_id=b1.id, tender_id=tender1.id, document_name="Key_Technical_Engineers_CVs.pdf", file_path=b1_man_pdf, document_type="PERSONNEL_CV", page_count=1, extracted_text="Rajesh Sharma (Lead Pipeline Manager) - 14 years experience\nVikram Mehta (Chief Welding Specialist) - 12 years experience\nAmit Patel (Senior Pipeline Engineer) - 10 years experience\nSanjay Gupta (Senior Pipeline Inspector) - 11 years experience\nDharmendra Rao (Senior Commissioning Engineer) - 9 years experience\nNitin Deshmukh (Lead Safety Officer) - 10 years experience"),
-        Document(bidder_id=b1.id, tender_id=tender1.id, document_name="HSE_Safety_Compliance_Manual.pdf", file_path=b1_hse_pdf, document_type="HSE_DOCUMENT", page_count=1, extracted_text="Certified ISO 45001:2018 and ISO 14001:2015 for petroleum pipeline construction.\nCorporate HSE Policy Manual.")
+        Document(bidder_id=b1.id, tender_id=tender1.id, document_name="GST_Registration_Certificate.pdf", original_filename="GST_Registration_Certificate.pdf", file_path=b1_stat_pdf, document_type="GST_CERTIFICATE", page_count=1, extracted_text="Legal Name: PRAVEEN B S ENGINEERING SERVICES\nTrade Name: Praveen B S Engineering Services\nGSTIN: 29MOCKP1234M1Z5 (Karnataka)\nStatus: ACTIVE\nTaxpayer Type: Regular\nPAN: BSZPP1234K"),
+        Document(bidder_id=b1.id, tender_id=tender1.id, document_name="Financial_Statement.pdf", original_filename="Financial_Statement.pdf", file_path=b1_fin_pdf, document_type="FINANCIAL_STATEMENT", page_count=3, extracted_text="The bidder reported annual turnover of INR 30 Crore for FY 2023-24, INR 27 Crore for FY 2024-25 and INR 24 Crore for FY 2025-26.\nAverage Annual Turnover = INR 27 Crore."),
+        Document(bidder_id=b1.id, tender_id=tender1.id, document_name="Pipeline_Completion_Certificate.pdf", original_filename="Pipeline_Completion_Certificate.pdf", file_path=b1_exp_pdf, document_type="PIPELINE_PROJECT_DOCUMENT", page_count=4, extraction_method="PyMuPDF", extracted_text="Client: GAIL (India) Limited\nProject: Natural Gas Transmission Pipeline\nLength: 135 KM\nDiameter: 24 Inch\nValue: INR 82 Crore\nCompletion: 15-03-2025\nRole: EPC Contractor\nCompleted 135 KM natural gas transmission pipeline successfully commissioned."),
+        Document(bidder_id=b1.id, tender_id=tender1.id, document_name="Oil_Gas_Experience_Summary.pdf", original_filename="Oil_Gas_Experience_Summary.pdf", file_path=b1_oil_pdf, document_type="EXPERIENCE_CERTIFICATE", page_count=2, extracted_text="Total verified experience in Petroleum, Natural Gas, and Hydrocarbon sector: 9 Years across 3 projects."),
+        Document(bidder_id=b1.id, tender_id=tender1.id, document_name="Technical_Manpower_CVs.pdf", original_filename="Technical_Manpower_CVs.pdf", file_path=b1_man_pdf, document_type="PERSONNEL_CV", page_count=5, extracted_text="Praveen B S - Project Engineer - B.Tech Mechanical - 12 Years exp - 9 Years pipeline\nRavi Kumar - Pipeline Engineer - B.Tech Mechanical - 11 Years exp - 10 Years pipeline\nSuresh Sharma - Welding & NDT Specialist - B.E. Metallurgy - 10 Years exp - 9 Years pipeline\nAnanya Rao - QA/QC Pipeline Inspector - B.Tech Mechanical - 9 Years exp - 8 Years pipeline\nVikram Patel - Lead Site Safety Officer - Diploma Safety - 9 Years exp - 8 Years pipeline"),
+        Document(bidder_id=b1.id, tender_id=tender1.id, document_name="HSE_ISO45001_Safety_Dossier.pdf", original_filename="HSE_ISO45001_Safety_Dossier.pdf", file_path=b1_hse_pdf, document_type="SAFETY_CERTIFICATE", page_count=3, extracted_text="ISO 45001:2018 Certified\nISO 14001:2015 Certified\nZero-fatality site safety policy")
     ]
     for d in docs_b1:
         db.add(d)
     db.commit()
 
     entities_b1 = [
-        ExtractedEntity(document_id=docs_b1[0].id, entity_type="GSTIN", entity_value="27AAACL1234F1Z5", normalized_value="27AAACL1234F1Z5", confidence=0.98, page_number=1, context_snippet="GSTIN: 27AAACL1234F1Z5 (Maharashtra) Active"),
-        ExtractedEntity(document_id=docs_b1[0].id, entity_type="PAN", entity_value="AAACL1234F", normalized_value="AAACL1234F", confidence=0.98, page_number=1, context_snippet="PAN: AAACL1234F (Larsen & Toubro Hydrocarbon)"),
-        ExtractedEntity(document_id=docs_b1[0].id, entity_type="COMPANY_NAME", entity_value="Larsen & Toubro Hydrocarbon Engineering Limited", normalized_value="larsen toubro hydrocarbon engineering ltd", confidence=0.98, page_number=1, context_snippet="Larsen & Toubro Hydrocarbon Engineering Limited"),
-        ExtractedEntity(document_id=docs_b1[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2022-23: ₹18.50 Cr", normalized_value="185000000.0", confidence=0.96, page_number=1, context_snippet="FY 2022-23: INR 18.50 Crore"),
-        ExtractedEntity(document_id=docs_b1[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2023-24: ₹22.00 Cr", normalized_value="220000000.0", confidence=0.96, page_number=1, context_snippet="FY 2023-24: INR 22.00 Crore"),
-        ExtractedEntity(document_id=docs_b1[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2024-25: ₹24.50 Cr", normalized_value="245000000.0", confidence=0.96, page_number=1, context_snippet="FY 2024-25: INR 24.50 Crore"),
-        ExtractedEntity(document_id=docs_b1[2].id, entity_type="OIL_GAS_PROJECT", entity_value="GAIL Jagdishpur-Haldia Gas Pipeline & IOCL Refinery", normalized_value="gail jagdishpur haldia gas pipeline", confidence=0.96, page_number=1, context_snippet="EPC Laying of 165 km, 24-inch Outer Diameter API 5L X70 cross-country natural gas transmission pipeline for GAIL."),
-        ExtractedEntity(document_id=docs_b1[2].id, entity_type="PIPELINE_LENGTH_KM", entity_value="165.0 km", normalized_value="165.0", confidence=0.98, page_number=1, context_snippet="Laying of 165 km, 24-inch Outer Diameter API 5L X70 cross-country natural gas transmission pipeline"),
-        ExtractedEntity(document_id=docs_b1[2].id, entity_type="PIPELINE_DIAMETER_INCH", entity_value="24.0 inch", normalized_value="24.0", confidence=0.98, page_number=1, context_snippet="24-inch Outer Diameter API 5L X70"),
-        ExtractedEntity(document_id=docs_b1[3].id, entity_type="MANPOWER_RECORD", entity_value="Rajesh Sharma (Lead Pipeline Manager - 14 years)", normalized_value="14.0", confidence=0.96, page_number=1, context_snippet="Rajesh Sharma (Lead Pipeline Project Manager) - 14 years experience"),
-        ExtractedEntity(document_id=docs_b1[3].id, entity_type="MANPOWER_RECORD", entity_value="Vikram Mehta (Chief Welding Specialist - 12 years)", normalized_value="12.0", confidence=0.96, page_number=1, context_snippet="Vikram Mehta (Chief Welding & NDT Specialist) - 12 years experience"),
-        ExtractedEntity(document_id=docs_b1[3].id, entity_type="MANPOWER_RECORD", entity_value="Amit Patel (Senior Pipeline Engineer - 10 years)", normalized_value="10.0", confidence=0.96, page_number=1, context_snippet="Amit Patel (Senior Pipeline Engineer) - 10 years experience"),
-        ExtractedEntity(document_id=docs_b1[3].id, entity_type="MANPOWER_RECORD", entity_value="Sanjay Gupta (Senior Pipeline Inspector - 11 years)", normalized_value="11.0", confidence=0.96, page_number=1, context_snippet="Sanjay Gupta (Senior QA/QC Pipeline Inspector) - 11 years experience"),
-        ExtractedEntity(document_id=docs_b1[3].id, entity_type="MANPOWER_RECORD", entity_value="Dharmendra Rao (Senior Commissioning Engineer - 9 years)", normalized_value="9.0", confidence=0.96, page_number=1, context_snippet="Dharmendra Rao (Senior Commissioning Engineer) - 9 years experience"),
-        ExtractedEntity(document_id=docs_b1[3].id, entity_type="MANPOWER_RECORD", entity_value="Nitin Deshmukh (Lead Safety Officer - 10 years)", normalized_value="10.0", confidence=0.96, page_number=1, context_snippet="Nitin Deshmukh (Lead Safety Officer) - 10 years experience"),
-        ExtractedEntity(document_id=docs_b1[4].id, entity_type="HSE_CERTIFICATION", entity_value="ISO 45001", normalized_value="ISO 45001", confidence=0.98, page_number=1, context_snippet="Certified ISO 45001:2018 Occupational Health & Safety Management System"),
-        ExtractedEntity(document_id=docs_b1[4].id, entity_type="HSE_CERTIFICATION", entity_value="ISO 14001", normalized_value="ISO 14001", confidence=0.98, page_number=1, context_snippet="Certified ISO 14001:2015 Environmental Management System")
+        ExtractedEntity(document_id=docs_b1[0].id, entity_type="GSTIN", entity_value="29MOCKP1234M1Z5", normalized_value="29MOCKP1234M1Z5", confidence=0.97, page_number=1, context_snippet="GSTIN: 29MOCKP1234M1Z5 Active Regular"),
+        ExtractedEntity(document_id=docs_b1[0].id, entity_type="PAN", entity_value="BSZPP1234K", normalized_value="BSZPP1234K", confidence=0.98, page_number=1, context_snippet="PAN: BSZPP1234K (PRAVEEN B S ENGINEERING SERVICES)"),
+        ExtractedEntity(document_id=docs_b1[0].id, entity_type="COMPANY_NAME", entity_value="PRAVEEN B S ENGINEERING SERVICES", normalized_value="praveen b s engineering services", confidence=0.98, page_number=1, context_snippet="PRAVEEN B S ENGINEERING SERVICES"),
+        ExtractedEntity(document_id=docs_b1[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2023-24: INR 30 Crore", normalized_value="300000000.0", confidence=0.96, page_number=3, context_snippet="FY 2023-24: INR 30 Crore"),
+        ExtractedEntity(document_id=docs_b1[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2024-25: INR 27 Crore", normalized_value="270000000.0", confidence=0.96, page_number=3, context_snippet="FY 2024-25: INR 27 Crore"),
+        ExtractedEntity(document_id=docs_b1[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2025-26: INR 24 Crore", normalized_value="240000000.0", confidence=0.96, page_number=3, context_snippet="FY 2025-26: INR 24 Crore"),
+        ExtractedEntity(document_id=docs_b1[2].id, entity_type="OIL_GAS_PROJECT", entity_value="Natural Gas Transmission Pipeline (Section 4)", normalized_value="natural gas transmission pipeline section 4", confidence=0.95, page_number=4, context_snippet="Completed 135 KM natural gas transmission pipeline successfully commissioned."),
+        ExtractedEntity(document_id=docs_b1[2].id, entity_type="PIPELINE_LENGTH_KM", entity_value="135.0 km", normalized_value="135.0", confidence=0.95, page_number=4, context_snippet="Length: 135 KM 24 Inch NB API 5L X70"),
+        ExtractedEntity(document_id=docs_b1[3].id, entity_type="OIL_GAS_EXPERIENCE_YEARS", entity_value="9.0 Years", normalized_value="9.0", confidence=0.94, page_number=1, context_snippet="Total verified experience in Petroleum, Natural Gas: 9 Years"),
+        ExtractedEntity(document_id=docs_b1[4].id, entity_type="MANPOWER_RECORD", entity_value="Praveen B S (Project Engineer - 12 years / 9 years pipeline)", normalized_value="9.0", confidence=0.93, page_number=1, context_snippet="Praveen B S - Project Engineer - B.Tech Mechanical"),
+        ExtractedEntity(document_id=docs_b1[4].id, entity_type="MANPOWER_RECORD", entity_value="Ravi Kumar (Pipeline Engineer - 11 years / 10 years pipeline)", normalized_value="10.0", confidence=0.93, page_number=2, context_snippet="Ravi Kumar - Pipeline Engineer - B.Tech Mechanical"),
+        ExtractedEntity(document_id=docs_b1[4].id, entity_type="MANPOWER_RECORD", entity_value="Suresh Sharma (Chief Welding & NDT - 10 years / 9 years pipeline)", normalized_value="9.0", confidence=0.93, page_number=3, context_snippet="Suresh Sharma - Chief Welding Specialist"),
+        ExtractedEntity(document_id=docs_b1[4].id, entity_type="MANPOWER_RECORD", entity_value="Ananya Rao (QA/QC Inspector - 9 years / 8 years pipeline)", normalized_value="8.0", confidence=0.93, page_number=4, context_snippet="Ananya Rao - QA/QC Pipeline Inspector"),
+        ExtractedEntity(document_id=docs_b1[4].id, entity_type="MANPOWER_RECORD", entity_value="Vikram Patel (Lead Site Safety Officer - 9 years / 8 years pipeline)", normalized_value="8.0", confidence=0.93, page_number=5, context_snippet="Vikram Patel - Lead Site Safety Officer"),
+        ExtractedEntity(document_id=docs_b1[5].id, entity_type="HSE_CERTIFICATION", entity_value="ISO 45001:2018 & ISO 14001:2015", normalized_value="ISO_45001_14001", confidence=0.81, page_number=1, context_snippet="ISO 45001:2018 Certified Occupational Health")
     ]
     for ent in entities_b1:
         db.add(ent)
     db.commit()
 
-
     # =============================================================
-    # BIDDER 2: INDUS PIPELINE INFRASTRUCTURE (FAIL - HIGH RISK, SCORE: 60%)
-    # Shortfall in Pipeline Length (60 km vs 100 km), Turnover Shortfall (₹6.83 Cr vs ₹10.0 Cr),
-    # Only 3 Technical Personnel, Missing HSE Document
+    # BIDDER 2: LARSEN & TOUBRO HYDROCARBON PIPELINE DIVISION (PASS / QUALIFIED - SCORE: 100%, RISK: LOW)
     # =============================================================
     b2 = Bidder(
         tender_id=tender1.id,
-        legal_name="Indus Pipeline Infrastructure Limited",
-        trade_name="Indus Pipeline",
-        pan="AABCI5678K",
-        gstin="07AABCI5678K1Z2",
-        registered_address="Indus House, Barakhamba Road, Connaught Place, New Delhi 110001",
-        contact_information={"email": "contracts@induspipeline.in", "phone": "+91 11 4120 7800"},
+        legal_name="LARSEN & TOUBRO HYDROCARBON PIPELINE DIVISION",
+        trade_name="L&T Hydrocarbon",
+        pan="AAACL0123L",
+        gstin="27AAACL0123L1Z6",
+        registered_address="L&T House, Ballard Estate, Mumbai, Maharashtra 400001",
+        contact_information={"email": "tenders@lthydrocarbon.com", "phone": "+91 22 6752 5656"},
         bidder_type="INDIAN_EPC_CONTRACTOR",
         country="INDIA",
-        oil_gas_experience_years=12.0,
-        pipeline_experience_years=9.0,
-        udyam_number="UDYAM-DL-04-0012948",
-        cin="U45200DL2014PLC264819",
-        email="contracts@induspipeline.in",
-        phone="+91 11 4120 7800",
-        contact_person="Ramesh K. Jindal (Director - Projects)",
-        status="SUBMITTED"
+        oil_gas_experience_years=18.0,
+        pipeline_experience_years=16.0,
+        udyam_number="UDYAM-MH-19-0019284",
+        cin="L99999MH1946PLC004768",
+        email="tenders@lthydrocarbon.com",
+        phone="+91 22 6752 5656",
+        contact_person="Sunil R. Deshmukh (Head - Pipeline Procurement)",
+        status="QUALIFIED"
     )
     db.add(b2)
     db.commit()
@@ -513,130 +531,135 @@ def seed():
     bid2 = Bid(
         tender_id=tender1.id,
         bidder_id=b2.id,
-        bid_reference_number="BID-GAIL-2026-INDUS-002",
-        submission_date=datetime.now(timezone.utc) - timedelta(days=1),
-        technical_bid_status="UNDER_EVALUATION",
-        financial_bid_amount=2150000000.0,
+        bid_reference_number="BID-MOPNG-2026-LT-002",
+        submission_date=datetime.now(timezone.utc) - timedelta(days=2),
+        technical_bid_status="QUALIFIED",
+        financial_bid_amount=2380000000.0,
         currency="INR",
-        remarks="Bid submitted with technical qualification shortfalls."
+        remarks="Tier-1 EPC Contractor with full technical, financial, manpower, and safety compliance."
     )
     db.add(bid2)
 
     p2_1 = BidderProject(
         bidder_id=b2.id,
-        project_name="IOCL Mathura-Tundla Spur Pipeline Construction",
+        project_name="IOCL Paradip-Haldia-Durgapur LPG & Natural Gas Grid Pipeline",
         client_name="Indian Oil Corporation Limited",
         client_type="PUBLIC_SECTOR_UNDERTAKING",
-        sector="PETROLEUM",
+        sector="OIL_AND_GAS",
         project_type="PIPELINE_CONSTRUCTION",
-        pipeline_type="PRODUCT_PIPELINE",
-        pipeline_length_km=60.0,
-        pipeline_diameter="18 inch NB API 5L X60",
-        project_value=680000000.0,
+        pipeline_type="NATURAL_GAS_TRANSMISSION",
+        pipeline_length_km=240.0,
+        pipeline_diameter="28 Inch NB API 5L X70",
+        project_value=1650000000.0,
         currency="INR",
-        location="Uttar Pradesh",
-        start_date=datetime.now(timezone.utc) - timedelta(days=365*3),
-        completion_date=datetime.now(timezone.utc) - timedelta(days=365*2),
-        scope_of_work="Pipeline laying and spur terminal connection",
-        bidder_role="MAIN_CONTRACTOR",
-        contract_reference="IOCL/MT/2019/08"
+        location="Odisha & West Bengal",
+        start_date=datetime.now(timezone.utc) - timedelta(days=365*4),
+        completion_date=datetime.now(timezone.utc) - timedelta(days=210),
+        scope_of_work="EPC contractor for 240 km 28-inch high pressure natural gas grid with mainline valve stations",
+        bidder_role="EPC_CONTRACTOR",
+        contract_reference="IOCL/PHDPL/2021/04"
     )
     db.add(p2_1)
 
     staff_b2 = [
-        BidderPersonnel(bidder_id=b2.id, name="Pankaj Verma", designation="Pipeline Engineer", qualification="B.E. Mechanical", years_of_experience=8.5, pipeline_experience_years=8.5),
-        BidderPersonnel(bidder_id=b2.id, name="Sunil Kumar", designation="Mechanical Engineer", qualification="B.Tech Mechanical", years_of_experience=9.0, pipeline_experience_years=9.0),
-        BidderPersonnel(bidder_id=b2.id, name="Ankit Mishra", designation="Safety Officer", qualification="Diploma Safety", years_of_experience=8.0, pipeline_experience_years=8.0)
+        BidderPersonnel(bidder_id=b2.id, name="Siddharth Mehta", designation="Chief Project Manager", qualification="B.E. Mechanical", specialization="Cross-Country Natural Gas Pipelines", years_of_experience=18.0, pipeline_experience_years=16.0),
+        BidderPersonnel(bidder_id=b2.id, name="Manoj Nambiar", designation="Senior Pipeline Engineer", qualification="B.Tech Mechanical", specialization="HDD & River Crossings", years_of_experience=15.0, pipeline_experience_years=13.0),
+        BidderPersonnel(bidder_id=b2.id, name="Rajiv Sengupta", designation="QA/QC Lead Specialist", qualification="B.E. Metallurgy", specialization="NDT & API 1104 Welding", years_of_experience=14.0, pipeline_experience_years=12.0),
+        BidderPersonnel(bidder_id=b2.id, name="Ashok Kulkarni", designation="Senior Integrity Engineer", qualification="M.Tech Mechanical", specialization="Hydrotesting & SCADA", years_of_experience=12.0, pipeline_experience_years=11.0),
+        BidderPersonnel(bidder_id=b2.id, name="Deepak Chauhan", designation="HSE & Safety Director", qualification="Degree Industrial Safety", specialization="ISO 45001 & Petroleum Site Safety", years_of_experience=14.0, pipeline_experience_years=12.0)
     ]
     for s in staff_b2:
         db.add(s)
 
-    b2_stat_pdf = os.path.join(settings.UPLOAD_DIR, "Indus_Pipeline_Statutory_GST_PAN.pdf")
-    b2_fin_pdf = os.path.join(settings.UPLOAD_DIR, "Indus_Pipeline_Turnover_Financials.pdf")
-    b2_exp_pdf = os.path.join(settings.UPLOAD_DIR, "Indus_Pipeline_60km_Experience.pdf")
-    b2_man_pdf = os.path.join(settings.UPLOAD_DIR, "Indus_Pipeline_Manpower_CVs.pdf")
+    b2_stat_pdf = os.path.join(settings.UPLOAD_DIR, "LT_Statutory_GST_PAN.pdf")
+    b2_fin_pdf = os.path.join(settings.UPLOAD_DIR, "LT_Turnover_Financials.pdf")
+    b2_exp_pdf = os.path.join(settings.UPLOAD_DIR, "LT_240km_Pipeline_Experience.pdf")
+    b2_man_pdf = os.path.join(settings.UPLOAD_DIR, "LT_Manpower_CVs.pdf")
+    b2_hse_pdf = os.path.join(settings.UPLOAD_DIR, "LT_HSE_ISO45001_Policy.pdf")
 
     create_sample_pdf(
         b2_stat_pdf,
-        "INDUS PIPELINE INFRASTRUCTURE - STATUTORY CERTIFICATES",
+        "L&T HYDROCARBON - STATUTORY REGISTRATION CERTIFICATES",
         [
-            ("1. GST & PAN Registration", "Entity: Indus Pipeline Infrastructure Limited\nGSTIN: 07AABCI5678K1Z2 (Delhi)\nPAN: AABCI5678K\nStatus: ACTIVE")
+            ("1. GST & PAN Registration", "Legal Name: LARSEN & TOUBRO HYDROCARBON PIPELINE DIVISION\nGSTIN: 27AAACL0123L1Z6 (Maharashtra)\nPAN: AAACL0123L\nStatus: ACTIVE\nTaxpayer Type: Regular")
         ]
     )
-
     create_sample_pdf(
         b2_fin_pdf,
-        "INDUS PIPELINE INFRASTRUCTURE - AUDITED ANNUAL TURNOVER",
+        "L&T HYDROCARBON - AUDITED ANNUAL TURNOVER",
         [
-            ("1. Three-Year Turnover Statement", "FY 2022-23: INR 6.50 Crore\nFY 2023-24: INR 7.20 Crore\nFY 2024-25: INR 6.80 Crore\nAverage Annual Turnover: INR 6.83 Crore (Below tender threshold of INR 10.00 Crore, Shortfall: INR 3.17 Crore).")
+            ("1. 3-Year Audited Turnover Statement", "FY 2023-24: INR 180.00 Crore\nFY 2024-25: INR 165.00 Crore\nFY 2025-26: INR 172.00 Crore\nAverage Annual Turnover = INR 172.33 Crore (Exceeds mandatory threshold of INR 25.00 Crore).\nAudited by M/s Deloitte Haskins & Sells | UDIN: 26012345AAAAAB1234.")
         ]
     )
-
     create_sample_pdf(
         b2_exp_pdf,
-        "INDUS PIPELINE INFRASTRUCTURE - PIPELINE COMPLETION CERTIFICATE",
+        "L&T HYDROCARBON - PIPELINE COMPLETION CERTIFICATE",
         [
-            ("1. IOCL Mathura-Tundla Spur Pipeline", "Client: Indian Oil Corporation Limited\nScope: Construction of 60 km, 18-inch OD petroleum spur pipeline.\nCompleted: March 2022 | Executed Length: 60 km (Below mandatory 100 km threshold).")
+            ("1. Client Completion Certificate", "Client: Indian Oil Corporation Limited (IOCL)\nProject: Paradip-Haldia-Durgapur Gas Grid Pipeline\nLength: 240 KM | Diameter: 28 Inch NB API 5L X70\nCompletion Date: 20-04-2025\nStatus: Completed 240 KM natural gas transmission pipeline successfully.")
         ]
     )
-
     create_sample_pdf(
         b2_man_pdf,
-        "INDUS PIPELINE INFRASTRUCTURE - TECHNICAL PERSONNEL",
+        "L&T HYDROCARBON - KEY PERSONNEL CVs",
         [
-            ("1. Staff List", "1. Pankaj Verma (Pipeline Engineer) - 8.5 years experience\n2. Sunil Kumar (Mechanical Engineer) - 9.0 years experience\n3. Ankit Mishra (Safety Officer) - 8.0 years experience\n(Total qualifying personnel: 3 engineers vs 5 mandatory).")
+            ("1. Engineering Roster", "1. Siddharth Mehta (Chief Project Manager) - 18 yrs exp\n2. Manoj Nambiar (Senior Pipeline Engineer) - 15 yrs exp\n3. Rajiv Sengupta (QA/QC Specialist) - 14 yrs exp\n4. Ashok Kulkarni (Senior Integrity Engineer) - 12 yrs exp\n5. Deepak Chauhan (HSE Safety Director) - 14 yrs exp\n(All 5 personnel hold B.Tech/M.Tech with > 10 years pipeline experience).")
+        ]
+    )
+    create_sample_pdf(
+        b2_hse_pdf,
+        "L&T HYDROCARBON - HSE & SAFETY POLICY",
+        [
+            ("1. Certifications & Policy", "Certified ISO 45001:2018 (Occupational Health & Safety) & ISO 14001:2015 (Environmental Management).\nZero-Fatality Corporate Commitment in place.")
         ]
     )
 
     docs_b2 = [
-        Document(bidder_id=b2.id, tender_id=tender1.id, document_name="Indus_Statutory_GST_PAN.pdf", file_path=b2_stat_pdf, document_type="GST_CERTIFICATE", page_count=1, extracted_text="Indus Pipeline Infrastructure Limited\nGSTIN: 07AABCI5678K1Z2\nPAN: AABCI5678K"),
-        Document(bidder_id=b2.id, tender_id=tender1.id, document_name="Indus_Turnover_Statement.pdf", file_path=b2_fin_pdf, document_type="FINANCIAL_STATEMENT", page_count=1, extracted_text="FY 2022-23: 6.50 Crore\nFY 2023-24: 7.20 Crore\nFY 2024-25: 6.80 Crore\nAverage: 6.83 Cr"),
-        Document(bidder_id=b2.id, tender_id=tender1.id, document_name="Indus_60km_Pipeline_Certificate.pdf", file_path=b2_exp_pdf, document_type="PIPELINE_PROJECT_DOCUMENT", page_count=1, extracted_text="Construction of 60 km spur pipeline for IOCL. Successfully completed 60 km length.\nPetroleum sector experience."),
-        Document(bidder_id=b2.id, tender_id=tender1.id, document_name="Indus_Manpower_List.pdf", file_path=b2_man_pdf, document_type="PERSONNEL_CV", page_count=1, extracted_text="Pankaj Verma (Pipeline Engineer) - 8.5 years\nSunil Kumar (Mechanical Engineer) - 9.0 years\nAnkit Mishra (Safety Officer) - 8.0 years")
+        Document(bidder_id=b2.id, tender_id=tender1.id, document_name="01_GST_Registration_LT.pdf", file_path=b2_stat_pdf, document_type="GST_CERTIFICATE", page_count=1, extracted_text="Legal Name: LARSEN & TOUBRO HYDROCARBON PIPELINE DIVISION\nGSTIN: 27AAACL0123L1Z6\nPAN: AAACL0123L\nStatus: ACTIVE"),
+        Document(bidder_id=b2.id, tender_id=tender1.id, document_name="03_Financial_Statement_LT.pdf", file_path=b2_fin_pdf, document_type="FINANCIAL_STATEMENT", page_count=1, extracted_text="FY 2023-24: INR 180.00 Crore\nFY 2024-25: INR 165.00 Crore\nFY 2025-26: INR 172.00 Crore\nAverage: INR 172.33 Crore\nUDIN: 26012345AAAAAB1234"),
+        Document(bidder_id=b2.id, tender_id=tender1.id, document_name="04_Similar_Pipeline_Experience_LT.pdf", file_path=b2_exp_pdf, document_type="PIPELINE_PROJECT_DOCUMENT", page_count=1, extracted_text="Client: IOCL\nProject: Natural Gas Grid Pipeline\nLength: 240 KM | Diameter: 28 Inch NB API 5L X70\nCompleted: 20-04-2025"),
+        Document(bidder_id=b2.id, tender_id=tender1.id, document_name="05_Key_Personnel_CVs_LT.pdf", file_path=b2_man_pdf, document_type="PERSONNEL_CV", page_count=1, extracted_text="Siddharth Mehta (18 yrs) - B.E. Mechanical\nManoj Nambiar (15 yrs) - B.Tech Mechanical\nRajiv Sengupta (14 yrs) - B.E. Metallurgy\nAshok Kulkarni (12 yrs) - M.Tech Mechanical\nDeepak Chauhan (14 yrs) - Safety Director"),
+        Document(bidder_id=b2.id, tender_id=tender1.id, document_name="07_HSE_and_Safety_Policy_LT.pdf", file_path=b2_hse_pdf, document_type="HSE_DOCUMENT", page_count=1, extracted_text="ISO 45001:2018 Certified\nISO 14001:2015 Certified\nZero-fatality site safety policy")
     ]
     for d in docs_b2:
         db.add(d)
     db.commit()
 
     entities_b2 = [
-        ExtractedEntity(document_id=docs_b2[0].id, entity_type="GSTIN", entity_value="07AABCI5678K1Z2", normalized_value="07AABCI5678K1Z2", confidence=0.98, page_number=1, context_snippet="GSTIN: 07AABCI5678K1Z2 Active"),
-        ExtractedEntity(document_id=docs_b2[0].id, entity_type="PAN", entity_value="AABCI5678K", normalized_value="AABCI5678K", confidence=0.98, page_number=1, context_snippet="PAN: AABCI5678K (Indus Pipeline)"),
-        ExtractedEntity(document_id=docs_b2[0].id, entity_type="COMPANY_NAME", entity_value="Indus Pipeline Infrastructure Limited", normalized_value="indus pipeline infrastructure ltd", confidence=0.98, page_number=1, context_snippet="Indus Pipeline Infrastructure Limited"),
-        ExtractedEntity(document_id=docs_b2[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2022-23: ₹6.50 Cr", normalized_value="65000000.0", confidence=0.95, page_number=1, context_snippet="FY 2022-23: INR 6.50 Crore"),
-        ExtractedEntity(document_id=docs_b2[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2023-24: ₹7.20 Cr", normalized_value="72000000.0", confidence=0.95, page_number=1, context_snippet="FY 2023-24: INR 7.20 Crore"),
-        ExtractedEntity(document_id=docs_b2[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2024-25: ₹6.80 Cr", normalized_value="68000000.0", confidence=0.95, page_number=1, context_snippet="FY 2024-25: INR 6.80 Crore"),
-        ExtractedEntity(document_id=docs_b2[2].id, entity_type="OIL_GAS_PROJECT", entity_value="IOCL Mathura-Tundla Spur Pipeline", normalized_value="iocl mathura tundla spur pipeline", confidence=0.94, page_number=1, context_snippet="Construction of 60 km spur pipeline for IOCL."),
-        ExtractedEntity(document_id=docs_b2[2].id, entity_type="PIPELINE_LENGTH_KM", entity_value="60.0 km", normalized_value="60.0", confidence=0.96, page_number=1, context_snippet="Construction of 60 km spur pipeline for IOCL"),
-        ExtractedEntity(document_id=docs_b2[3].id, entity_type="MANPOWER_RECORD", entity_value="Pankaj Verma (Pipeline Engineer - 8.5 years)", normalized_value="8.5", confidence=0.95, page_number=1, context_snippet="Pankaj Verma (Pipeline Engineer) - 8.5 years"),
-        ExtractedEntity(document_id=docs_b2[3].id, entity_type="MANPOWER_RECORD", entity_value="Sunil Kumar (Mechanical Engineer - 9.0 years)", normalized_value="9.0", confidence=0.95, page_number=1, context_snippet="Sunil Kumar (Mechanical Engineer) - 9.0 years"),
-        ExtractedEntity(document_id=docs_b2[3].id, entity_type="MANPOWER_RECORD", entity_value="Ankit Mishra (Safety Officer - 8.0 years)", normalized_value="8.0", confidence=0.95, page_number=1, context_snippet="Ankit Mishra (Safety Officer) - 8.0 years")
+        ExtractedEntity(document_id=docs_b2[0].id, entity_type="GSTIN", entity_value="27AAACL0123L1Z6", normalized_value="27AAACL0123L1Z6", confidence=0.99, page_number=1, context_snippet="GSTIN: 27AAACL0123L1Z6 ACTIVE"),
+        ExtractedEntity(document_id=docs_b2[0].id, entity_type="PAN", entity_value="AAACL0123L", normalized_value="AAACL0123L", confidence=0.99, page_number=1, context_snippet="PAN: AAACL0123L (L&T Hydrocarbon)"),
+        ExtractedEntity(document_id=docs_b2[0].id, entity_type="COMPANY_NAME", entity_value="LARSEN & TOUBRO HYDROCARBON PIPELINE DIVISION", normalized_value="larsen & toubro hydrocarbon pipeline division", confidence=0.99, page_number=1, context_snippet="LARSEN & TOUBRO HYDROCARBON PIPELINE DIVISION"),
+        ExtractedEntity(document_id=docs_b2[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2023-24: INR 180.00 Crore", normalized_value="1800000000.0", confidence=0.98, page_number=1, context_snippet="FY 2023-24: INR 180.00 Crore"),
+        ExtractedEntity(document_id=docs_b2[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2024-25: INR 165.00 Crore", normalized_value="1650000000.0", confidence=0.98, page_number=1, context_snippet="FY 2024-25: INR 165.00 Crore"),
+        ExtractedEntity(document_id=docs_b2[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2025-26: INR 172.00 Crore", normalized_value="1720000000.0", confidence=0.98, page_number=1, context_snippet="FY 2025-26: INR 172.00 Crore"),
+        ExtractedEntity(document_id=docs_b2[2].id, entity_type="PIPELINE_LENGTH_KM", entity_value="240.0 km", normalized_value="240.0", confidence=0.98, page_number=1, context_snippet="Length: 240 KM Diameter: 28 Inch NB API 5L X70"),
+        ExtractedEntity(document_id=docs_b2[3].id, entity_type="MANPOWER_RECORD", entity_value="Siddharth Mehta (18 yrs) - Chief Project Manager", normalized_value="18.0", confidence=0.98, page_number=1, context_snippet="Siddharth Mehta (18 yrs) - B.E. Mechanical"),
+        ExtractedEntity(document_id=docs_b2[4].id, entity_type="HSE_CERTIFICATION", entity_value="ISO 45001:2018 & ISO 14001:2015", normalized_value="ISO_45001_14001", confidence=0.98, page_number=1, context_snippet="ISO 45001:2018 and ISO 14001:2015 Certified")
     ]
     for ent in entities_b2:
         db.add(ent)
     db.commit()
 
-
     # =============================================================
-    # BIDDER 3: PETROCON ENERGY PROJECTS LLP (REVIEW - MEDIUM RISK, SCORE: 85%)
+    # BIDDER 3: APEX PIPELINE & INFRA SOLUTIONS (FAIL / DISQUALIFIED - TURNOVER & GSTIN SHORTFALL)
     # =============================================================
     b3 = Bidder(
         tender_id=tender1.id,
-        legal_name="PetroCon Energy Projects LLP",
-        trade_name="PetroCon Energy",
-        pan="AABCP9012M",
-        gstin="24AABCP9012M1Z8",
-        registered_address="PetroCon Heights, SG Highway, Ahmedabad, Gujarat 380054",
-        contact_information={"email": "info@petroconenergy.in", "phone": "+91 79 2685 4100"},
-        bidder_type="LIMITED_LIABILITY_PARTNERSHIP",
+        legal_name="APEX PIPELINE & INFRA SOLUTIONS PVT LTD",
+        trade_name="Apex Pipeline",
+        pan="AAACA4567A",
+        gstin="07AAACA4567A1Z1",
+        registered_address="Apex Tower, Nehru Place, New Delhi 110019",
+        contact_information={"email": "info@apexpipeline.com", "phone": "+91 11 2641 9000"},
+        bidder_type="INDIAN_EPC_CONTRACTOR",
         country="INDIA",
-        oil_gas_experience_years=15.0,
-        pipeline_experience_years=11.0,
-        udyam_number="UDYAM-GJ-01-0038914",
-        cin="AAA-9012",
-        email="info@petroconenergy.in",
-        phone="+91 79 2685 4100",
-        contact_person="Ketan B. Patel (Designated Partner)",
-        status="SUBMITTED"
+        oil_gas_experience_years=5.0,
+        pipeline_experience_years=3.0,
+        udyam_number="UDYAM-DL-02-0089123",
+        cin="U45200DL2018PTC321456",
+        email="info@apexpipeline.com",
+        phone="+91 11 2641 9000",
+        contact_person="Alok K. Gupta (Director)",
+        status="DISQUALIFIED"
     )
     db.add(b3)
     db.commit()
@@ -645,133 +668,83 @@ def seed():
     bid3 = Bid(
         tender_id=tender1.id,
         bidder_id=b3.id,
-        bid_reference_number="BID-GAIL-2026-PETROCON-003",
+        bid_reference_number="BID-MOPNG-2026-APEX-003",
         submission_date=datetime.now(timezone.utc) - timedelta(days=1),
-        technical_bid_status="UNDER_EVALUATION",
-        financial_bid_amount=2280000000.0,
-        currency="INR"
+        technical_bid_status="DISQUALIFIED",
+        financial_bid_amount=2190000000.0,
+        currency="INR",
+        remarks="Disqualified: 3-year turnover INR 14.23 Cr is below mandatory INR 25.00 Cr threshold. GSTIN registration cancelled."
     )
     db.add(bid3)
 
-    p3_1 = BidderProject(
-        bidder_id=b3.id,
-        project_name="Gujarat Gas City Gas Distribution Steel Grid Laying",
-        client_name="Gujarat Gas Limited",
-        client_type="PUBLIC_SECTOR_UNDERTAKING",
-        sector="CITY_GAS_DISTRIBUTION",
-        project_type="PIPELINE_LAYING",
-        pipeline_type="CGD_STEEL_NETWORK",
-        pipeline_length_km=95.0,
-        pipeline_diameter="16 inch NB API 5L X52",
-        project_value=1150000000.0,
-        currency="INR",
-        location="Surat & Navsari",
-        start_date=datetime.now(timezone.utc) - timedelta(days=365*2),
-        completion_date=datetime.now(timezone.utc) - timedelta(days=180),
-        scope_of_work="Steel pipeline laying and pressure regulating skids",
-        bidder_role="JV_PARTNER",
-        contract_reference="GGL/CGD/SURAT/2022/11"
-    )
-    db.add(p3_1)
-
-    staff_b3 = [
-        BidderPersonnel(bidder_id=b3.id, name="Hardik Shah", designation="Senior Pipeline Engineer", qualification="B.Tech Mechanical", years_of_experience=10.0, pipeline_experience_years=10.0),
-        BidderPersonnel(bidder_id=b3.id, name="Bhavesh Joshi", designation="Mechanical Engineer", qualification="B.E. Mechanical", years_of_experience=9.0, pipeline_experience_years=9.0),
-        BidderPersonnel(bidder_id=b3.id, name="Chirag Dave", designation="Welding Inspector", qualification="B.E. Metallurgy", years_of_experience=8.5, pipeline_experience_years=8.5),
-        BidderPersonnel(bidder_id=b3.id, name="Manish Vyas", designation="NDT Level II Inspector", qualification="Diploma Mechanical", years_of_experience=8.0, pipeline_experience_years=8.0),
-        BidderPersonnel(bidder_id=b3.id, name="Nilesh Parmar", designation="Assistant Pipeline Engineer", qualification="B.Tech Mechanical", years_of_experience=7.5, pipeline_experience_years=7.5)
-    ]
-    for s in staff_b3:
-        db.add(s)
-
-    b3_stat_pdf = os.path.join(settings.UPLOAD_DIR, "PetroCon_Statutory_GST_PAN.pdf")
-    b3_fin_pdf = os.path.join(settings.UPLOAD_DIR, "PetroCon_Audited_Financials.pdf")
-    b3_exp_pdf = os.path.join(settings.UPLOAD_DIR, "PetroCon_95km_CGD_Experience.pdf")
-    b3_man_pdf = os.path.join(settings.UPLOAD_DIR, "PetroCon_Manpower_CVs.pdf")
+    b3_stat_pdf = os.path.join(settings.UPLOAD_DIR, "Apex_Statutory_GST_PAN.pdf")
+    b3_fin_pdf = os.path.join(settings.UPLOAD_DIR, "Apex_Turnover_Financials.pdf")
+    b3_exp_pdf = os.path.join(settings.UPLOAD_DIR, "Apex_Pipeline_Experience.pdf")
 
     create_sample_pdf(
         b3_stat_pdf,
-        "PETROCON ENERGY PROJECTS - STATUTORY CERTIFICATES",
+        "APEX PIPELINE - STATUTORY CERTIFICATES",
         [
-            ("1. Legal Entity & GST Registration", "Entity: PetroCon Energy Projects LLP (formerly PetroCon Infra JV)\nGSTIN: 24AABCP9012M1Z8 (Gujarat)\nPAN: AABCP9012M\nStatus: ACTIVE")
+            ("1. GST & PAN Registration", "Legal Name: APEX PIPELINE & INFRA SOLUTIONS PVT LTD\nGSTIN: 07AAACA4567A1Z1 (Delhi)\nRegistration Status: CANCELLED / INACTIVE\nPAN: AAACA4567A")
         ]
     )
-
     create_sample_pdf(
         b3_fin_pdf,
-        "PETROCON ENERGY PROJECTS - FINANCIAL TURNOVER",
+        "APEX PIPELINE - AUDITED ANNUAL TURNOVER",
         [
-            ("1. Turnover Figures", "FY 2022-23: INR 12.00 Crore\nFY 2023-24: INR 14.00 Crore\nFY 2024-25: INR 11.50 Crore\nAverage Annual Turnover: INR 12.50 Crore (Exceeds ₹10.00 Cr requirement).")
+            ("1. 3-Year Turnover Statement", "FY 2023-24: INR 14.50 Crore\nFY 2024-25: INR 12.00 Crore\nFY 2025-26: INR 16.20 Crore\nAverage Annual Turnover = INR 14.23 Crore (Below tender requirement of INR 25.00 Crore, Shortfall: INR 10.77 Crore).")
         ]
     )
-
     create_sample_pdf(
         b3_exp_pdf,
-        "PETROCON ENERGY PROJECTS - GAS PIPELINE EXPERIENCE CERTIFICATE",
+        "APEX PIPELINE - PAST WORK CERTIFICATE",
         [
-            ("1. Gujarat Gas City Gas Distribution Pipeline Network", "Issued to: PetroCon Infra JV (Affiliate Entity of PetroCon Energy Projects LLP).\nScope: Laying of 95 km, 12-inch and 16-inch medium-pressure natural gas network in Surat-Navsari Geographical Area.\nStatus: Executed 95 km length. Requires officer discretion on affiliate entity certificate and diameter threshold.")
-        ]
-    )
-
-    create_sample_pdf(
-        b3_man_pdf,
-        "PETROCON ENERGY PROJECTS - KEY PERSONNEL CVs",
-        [
-            ("1. Technical Team", "1. Hardik Shah (Senior Pipeline Engineer) - 10 years experience\n2. Bhavesh Joshi (Mechanical Engineer) - 9 years experience\n3. Chirag Dave (Welding Inspector) - 8.5 years experience\n4. Manish Vyas (NDT Level II) - 8.0 years experience\n5. Nilesh Parmar (Assistant Pipeline Engineer) - 7.5 years experience (Slightly under 8 yrs).")
+            ("1. Small Diameter Spur Pipeline", "Client: State Distribution Grid\nExecuted Length: 45 KM | Diameter: 16 Inch NB\nStatus: 45 KM executed (Shortfall vs 100 KM mandatory / 24-inch minimum).")
         ]
     )
 
     docs_b3 = [
-        Document(bidder_id=b3.id, tender_id=tender1.id, document_name="PetroCon_Statutory_GST_PAN.pdf", file_path=b3_stat_pdf, document_type="GST_CERTIFICATE", page_count=1, extracted_text="PetroCon Energy Projects LLP\nGSTIN: 24AABCP9012M1Z8\nPAN: AABCP9012M"),
-        Document(bidder_id=b3.id, tender_id=tender1.id, document_name="PetroCon_Turnover.pdf", file_path=b3_fin_pdf, document_type="FINANCIAL_STATEMENT", page_count=1, extracted_text="FY 2022-23: 12.00 Crore\nFY 2023-24: 14.00 Crore\nFY 2024-25: 11.50 Crore\nAverage: 12.50 Cr"),
-        Document(bidder_id=b3.id, tender_id=tender1.id, document_name="PetroCon_95km_CGD_Certificate.pdf", file_path=b3_exp_pdf, document_type="PIPELINE_PROJECT_DOCUMENT", page_count=1, extracted_text="Laying of 95 km natural gas network for Gujarat Gas. Issued to PetroCon Infra JV.\nHydrocarbon and natural gas project experience."),
-        Document(bidder_id=b3.id, tender_id=tender1.id, document_name="PetroCon_Manpower_List.pdf", file_path=b3_man_pdf, document_type="PERSONNEL_CV", page_count=1, extracted_text="Hardik Shah (Pipeline Engineer) - 10 years\nBhavesh Joshi (Mechanical Engineer) - 9 years\nChirag Dave (Welding Inspector) - 8.5 years\nManish Vyas (NDT Level II) - 8.0 years\nNilesh Parmar (Assistant Engineer) - 7.5 years")
+        Document(bidder_id=b3.id, tender_id=tender1.id, document_name="01_GST_Registration_Apex.pdf", file_path=b3_stat_pdf, document_type="GST_CERTIFICATE", page_count=1, extracted_text="Legal Name: APEX PIPELINE & INFRA SOLUTIONS PVT LTD\nGSTIN: 07AAACA4567A1Z1\nRegistration Status: CANCELLED\nPAN: AAACA4567A"),
+        Document(bidder_id=b3.id, tender_id=tender1.id, document_name="03_Financial_Statement_Apex.pdf", file_path=b3_fin_pdf, document_type="FINANCIAL_STATEMENT", page_count=1, extracted_text="FY 2023-24: INR 14.50 Crore\nFY 2024-25: INR 12.00 Crore\nFY 2025-26: INR 16.20 Crore\nAverage Annual Turnover: INR 14.23 Crore (Below ₹25 Cr mandatory)."),
+        Document(bidder_id=b3.id, tender_id=tender1.id, document_name="04_Similar_Pipeline_Experience_Apex.pdf", file_path=b3_exp_pdf, document_type="PIPELINE_PROJECT_DOCUMENT", page_count=1, extracted_text="Executed Length: 45 KM | Diameter: 16 Inch NB")
     ]
     for d in docs_b3:
         db.add(d)
     db.commit()
 
     entities_b3 = [
-        ExtractedEntity(document_id=docs_b3[0].id, entity_type="GSTIN", entity_value="24AABCP9012M1Z8", normalized_value="24AABCP9012M1Z8", confidence=0.98, page_number=1, context_snippet="GSTIN: 24AABCP9012M1Z8 Active"),
-        ExtractedEntity(document_id=docs_b3[0].id, entity_type="PAN", entity_value="AABCP9012M", normalized_value="AABCP9012M", confidence=0.98, page_number=1, context_snippet="PAN: AABCP9012M"),
-        ExtractedEntity(document_id=docs_b3[0].id, entity_type="COMPANY_NAME", entity_value="PetroCon Energy Projects LLP", normalized_value="petrocon energy projects llp", confidence=0.98, page_number=1, context_snippet="PetroCon Energy Projects LLP"),
-        ExtractedEntity(document_id=docs_b3[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2022-23: ₹12.00 Cr", normalized_value="120000000.0", confidence=0.95, page_number=1, context_snippet="FY 2022-23: INR 12.00 Crore"),
-        ExtractedEntity(document_id=docs_b3[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2023-24: ₹14.00 Cr", normalized_value="140000000.0", confidence=0.95, page_number=1, context_snippet="FY 2023-24: INR 14.00 Crore"),
-        ExtractedEntity(document_id=docs_b3[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2024-25: ₹11.50 Cr", normalized_value="115000000.0", confidence=0.95, page_number=1, context_snippet="FY 2024-25: INR 11.50 Crore"),
-        ExtractedEntity(document_id=docs_b3[2].id, entity_type="OIL_GAS_PROJECT", entity_value="Gujarat Gas CGD Network Laying", normalized_value="gujarat gas cgd network", confidence=0.94, page_number=1, context_snippet="Laying of 95 km natural gas network for Gujarat Gas."),
-        ExtractedEntity(document_id=docs_b3[2].id, entity_type="PIPELINE_LENGTH_KM", entity_value="95.0 km", normalized_value="95.0", confidence=0.96, page_number=1, context_snippet="Laying of 95 km natural gas network"),
-        ExtractedEntity(document_id=docs_b3[3].id, entity_type="MANPOWER_RECORD", entity_value="Hardik Shah (Pipeline Engineer - 10 years)", normalized_value="10.0", confidence=0.95, page_number=1, context_snippet="Hardik Shah (Pipeline Engineer) - 10 years"),
-        ExtractedEntity(document_id=docs_b3[3].id, entity_type="MANPOWER_RECORD", entity_value="Bhavesh Joshi (Mechanical Engineer - 9 years)", normalized_value="9.0", confidence=0.95, page_number=1, context_snippet="Bhavesh Joshi (Mechanical Engineer) - 9 years"),
-        ExtractedEntity(document_id=docs_b3[3].id, entity_type="MANPOWER_RECORD", entity_value="Chirag Dave (Welding Inspector - 8.5 years)", normalized_value="8.5", confidence=0.95, page_number=1, context_snippet="Chirag Dave (Welding Inspector) - 8.5 years"),
-        ExtractedEntity(document_id=docs_b3[3].id, entity_type="MANPOWER_RECORD", entity_value="Manish Vyas (NDT Level II - 8.0 years)", normalized_value="8.0", confidence=0.95, page_number=1, context_snippet="Manish Vyas (NDT Level II) - 8.0 years"),
-        ExtractedEntity(document_id=docs_b3[3].id, entity_type="MANPOWER_RECORD", entity_value="Nilesh Parmar (Assistant Engineer - 7.5 years)", normalized_value="7.5", confidence=0.95, page_number=1, context_snippet="Nilesh Parmar (Assistant Engineer) - 7.5 years")
+        ExtractedEntity(document_id=docs_b3[0].id, entity_type="GSTIN", entity_value="07AAACA4567A1Z1", normalized_value="07AAACA4567A1Z1", confidence=0.98, page_number=1, context_snippet="GSTIN: 07AAACA4567A1Z1 CANCELLED"),
+        ExtractedEntity(document_id=docs_b3[0].id, entity_type="PAN", entity_value="AAACA4567A", normalized_value="AAACA4567A", confidence=0.98, page_number=1, context_snippet="PAN: AAACA4567A"),
+        ExtractedEntity(document_id=docs_b3[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2023-24: INR 14.50 Crore", normalized_value="145000000.0", confidence=0.95, page_number=1, context_snippet="FY 2023-24: INR 14.50 Crore"),
+        ExtractedEntity(document_id=docs_b3[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2024-25: INR 12.00 Crore", normalized_value="120000000.0", confidence=0.95, page_number=1, context_snippet="FY 2024-25: INR 12.00 Crore"),
+        ExtractedEntity(document_id=docs_b3[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2025-26: INR 16.20 Crore", normalized_value="162000000.0", confidence=0.95, page_number=1, context_snippet="FY 2025-26: INR 16.20 Crore"),
+        ExtractedEntity(document_id=docs_b3[2].id, entity_type="PIPELINE_LENGTH_KM", entity_value="45.0 km", normalized_value="45.0", confidence=0.95, page_number=1, context_snippet="Executed Length: 45 KM Diameter: 16 Inch NB")
     ]
     for ent in entities_b3:
         db.add(ent)
     db.commit()
 
-
     # =============================================================
-    # BIDDER 4: VANGUARD HYDROCARBON SOLUTIONS (CRITICAL RISK - IDENTITY MISMATCH)
+    # BIDDER 4: ZENITH ENGINEERING & CONSTRUCTION (FAIL / DISQUALIFIED - NON-HYDROCARBON WORK & NO HSE)
     # =============================================================
     b4 = Bidder(
         tender_id=tender1.id,
-        legal_name="Vanguard Hydrocarbon Solutions Limited",
-        trade_name="Vanguard Hydrocarbon",
-        pan="AABCV4321P",
-        gstin="29AABCV4321P1Z9",
-        registered_address="Vanguard Tech Park, Whitefield, Bengaluru, Karnataka 560066",
-        contact_information={"email": "legal@vanguardhydrocarbon.com", "phone": "+91 80 4910 3200"},
+        legal_name="ZENITH ENGINEERING & CONSTRUCTION LTD",
+        trade_name="Zenith Engineering",
+        pan="AAACZ8901Z",
+        gstin="03AAACZ8901Z1Z4",
+        registered_address="Zenith Complex, Mall Road, Ludhiana, Punjab 141001",
+        contact_information={"email": "bids@zenitheng.com", "phone": "+91 161 240 1800"},
         bidder_type="INDIAN_EPC_CONTRACTOR",
         country="INDIA",
-        oil_gas_experience_years=8.0,
-        pipeline_experience_years=5.0,
-        udyam_number="UDYAM-KA-02-0045812",
-        cin="U23200KA2016PLC091240",
-        email="legal@vanguardhydrocarbon.com",
-        phone="+91 80 4910 3200",
-        contact_person="Vijay R. Nair (Managing Director)",
-        status="SUBMITTED"
+        oil_gas_experience_years=2.0,
+        pipeline_experience_years=2.0,
+        udyam_number="UDYAM-PB-12-0034189",
+        cin="U45200PB2012PLC045120",
+        email="bids@zenitheng.com",
+        phone="+91 161 240 1800",
+        contact_person="Harpreet S. Gill (Managing Director)",
+        status="DISQUALIFIED"
     )
     db.add(b4)
     db.commit()
@@ -780,64 +753,269 @@ def seed():
     bid4 = Bid(
         tender_id=tender1.id,
         bidder_id=b4.id,
-        bid_reference_number="BID-GAIL-2026-VANGUARD-004",
+        bid_reference_number="BID-MOPNG-2026-ZENITH-004",
         submission_date=datetime.now(timezone.utc) - timedelta(days=1),
         technical_bid_status="DISQUALIFIED",
-        financial_bid_amount=2450000000.0,
-        currency="INR"
+        financial_bid_amount=2240000000.0,
+        currency="INR",
+        remarks="Disqualified: Missing mandatory ISO 45001 safety certification and submitted 12-inch water piping experience does not meet 24-inch hydrocarbon pipeline criteria."
     )
     db.add(bid4)
 
-    b4_stat_pdf = os.path.join(settings.UPLOAD_DIR, "Vanguard_Statutory_GST_PAN.pdf")
-    b4_fin_pdf = os.path.join(settings.UPLOAD_DIR, "Vanguard_Financials.pdf")
+    b4_stat_pdf = os.path.join(settings.UPLOAD_DIR, "Zenith_Statutory_GST_PAN.pdf")
+    b4_fin_pdf = os.path.join(settings.UPLOAD_DIR, "Zenith_Turnover_Financials.pdf")
+    b4_exp_pdf = os.path.join(settings.UPLOAD_DIR, "Zenith_Water_Pipe_Experience.pdf")
 
     create_sample_pdf(
         b4_stat_pdf,
-        "VANGUARD HYDROCARBON - STATUTORY REGISTRATION & DISCLOSURES",
+        "ZENITH ENGINEERING - STATUTORY CERTIFICATES",
         [
-            ("1. Statutory Details", "Bidder Name: Vanguard Hydrocarbon Solutions Limited\nGSTIN Registered Legal Name: Vanguard Energy Ventures Pvt Ltd (Identity Mismatch)\nPAN: AABCV4321P (Assigned to Vanguard Trading Corp)\nFlagged in CPPP Central Debarment list.")
+            ("1. GST & PAN Registration", "Legal Name: ZENITH ENGINEERING & CONSTRUCTION LTD\nGSTIN: 03AAACZ8901Z1Z4 (Punjab)\nPAN: AAACZ8901Z\nStatus: ACTIVE")
         ]
     )
-
     create_sample_pdf(
         b4_fin_pdf,
-        "VANGUARD HYDROCARBON - FINANCIAL TURNOVER",
+        "ZENITH ENGINEERING - AUDITED ANNUAL TURNOVER",
         [
-            ("1. Financial Breakdown", "FY 2022-23: INR 15.00 Crore\nFY 2023-24: INR 16.50 Crore\nFY 2024-25: INR 14.00 Crore\nAverage: INR 15.17 Crore.")
+            ("1. 3-Year Audited Turnover", "FY 2023-24: INR 28.00 Crore\nFY 2024-25: INR 26.00 Crore\nFY 2025-26: INR 25.00 Crore\nAverage Annual Turnover = INR 26.33 Crore (Meets ₹25.00 Cr turnover requirement).")
+        ]
+    )
+    create_sample_pdf(
+        b4_exp_pdf,
+        "ZENITH ENGINEERING - PAST PIPELINE WORK",
+        [
+            ("1. Municipal Water Distribution Line", "Client: Punjab Municipal Water Supply Board\nScope: Laying of 80 km, 12-inch ductile iron municipal water piping.\nNote: No hydrocarbon / natural gas pipeline experience or ISO 45001 safety certificate submitted.")
         ]
     )
 
     docs_b4 = [
-        Document(bidder_id=b4.id, tender_id=tender1.id, document_name="Vanguard_Statutory_GST_PAN.pdf", file_path=b4_stat_pdf, document_type="GST_CERTIFICATE", page_count=1, extracted_text="Vanguard Hydrocarbon Solutions Limited\nGSTIN Registered Legal Name: Vanguard Energy Ventures Pvt Ltd\nPAN: AABCV4321P"),
-        Document(bidder_id=b4.id, tender_id=tender1.id, document_name="Vanguard_Turnover.pdf", file_path=b4_fin_pdf, document_type="FINANCIAL_STATEMENT", page_count=1, extracted_text="FY 2022-23: 15.00 Crore\nFY 2023-24: 16.50 Crore\nFY 2024-25: 14.00 Crore\nAverage: 15.17 Cr")
+        Document(bidder_id=b4.id, tender_id=tender1.id, document_name="01_GST_Registration_Zenith.pdf", file_path=b4_stat_pdf, document_type="GST_CERTIFICATE", page_count=1, extracted_text="Legal Name: ZENITH ENGINEERING & CONSTRUCTION LTD\nGSTIN: 03AAACZ8901Z1Z4\nPAN: AAACZ8901Z\nStatus: ACTIVE"),
+        Document(bidder_id=b4.id, tender_id=tender1.id, document_name="03_Financial_Statement_Zenith.pdf", file_path=b4_fin_pdf, document_type="FINANCIAL_STATEMENT", page_count=1, extracted_text="FY 2023-24: INR 28.00 Crore\nFY 2024-25: INR 26.00 Crore\nFY 2025-26: INR 25.00 Crore\nAverage: INR 26.33 Crore"),
+        Document(bidder_id=b4.id, tender_id=tender1.id, document_name="04_Similar_Pipeline_Experience_Zenith.pdf", file_path=b4_exp_pdf, document_type="PIPELINE_PROJECT_DOCUMENT", page_count=1, extracted_text="Municipal Water Distribution Line\nExecuted Length: 80 KM | Diameter: 12 Inch NB Ductile Iron Water Piping\nNo ISO 45001 safety certificate submitted")
     ]
     for d in docs_b4:
         db.add(d)
     db.commit()
 
     entities_b4 = [
-        ExtractedEntity(document_id=docs_b4[0].id, entity_type="GSTIN", entity_value="29AABCV4321P1Z9", normalized_value="29AABCV4321P1Z9", confidence=0.98, page_number=1, context_snippet="GSTIN: 29AABCV4321P1Z9"),
-        ExtractedEntity(document_id=docs_b4[0].id, entity_type="PAN", entity_value="AABCV4321P", normalized_value="AABCV4321P", confidence=0.98, page_number=1, context_snippet="PAN: AABCV4321P"),
-        ExtractedEntity(document_id=docs_b4[0].id, entity_type="COMPANY_NAME", entity_value="Vanguard Energy Ventures Pvt Ltd", normalized_value="vanguard energy ventures pvt ltd", confidence=0.90, page_number=1, context_snippet="Vanguard Energy Ventures Pvt Ltd"),
-        ExtractedEntity(document_id=docs_b4[0].id, entity_type="BLACKLIST_DECLARATION", entity_value="FLAGGED: Blacklisting / Debarment Disclosed", normalized_value="DEBARRED", confidence=0.95, page_number=1, context_snippet="Flagged in CPPP Central Debarment list."),
-        ExtractedEntity(document_id=docs_b4[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2022-23: ₹15.00 Cr", normalized_value="150000000.0", confidence=0.95, page_number=1, context_snippet="FY 2022-23: INR 15.00 Crore"),
-        ExtractedEntity(document_id=docs_b4[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2023-24: ₹16.50 Cr", normalized_value="165000000.0", confidence=0.95, page_number=1, context_snippet="FY 2023-24: INR 16.50 Crore"),
-        ExtractedEntity(document_id=docs_b4[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2024-25: ₹14.00 Cr", normalized_value="140000000.0", confidence=0.95, page_number=1, context_snippet="FY 2024-25: INR 14.00 Crore")
+        ExtractedEntity(document_id=docs_b4[0].id, entity_type="GSTIN", entity_value="03AAACZ8901Z1Z4", normalized_value="03AAACZ8901Z1Z4", confidence=0.98, page_number=1, context_snippet="GSTIN: 03AAACZ8901Z1Z4 ACTIVE"),
+        ExtractedEntity(document_id=docs_b4[0].id, entity_type="PAN", entity_value="AAACZ8901Z", normalized_value="AAACZ8901Z", confidence=0.98, page_number=1, context_snippet="PAN: AAACZ8901Z"),
+        ExtractedEntity(document_id=docs_b4[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2023-24: INR 28.00 Crore", normalized_value="280000000.0", confidence=0.96, page_number=1, context_snippet="FY 2023-24: INR 28.00 Crore"),
+        ExtractedEntity(document_id=docs_b4[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2024-25: INR 26.00 Crore", normalized_value="260000000.0", confidence=0.96, page_number=1, context_snippet="FY 2024-25: INR 26.00 Crore"),
+        ExtractedEntity(document_id=docs_b4[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2025-26: INR 25.00 Crore", normalized_value="250000000.0", confidence=0.96, page_number=1, context_snippet="FY 2025-26: INR 25.00 Crore"),
+        ExtractedEntity(document_id=docs_b4[2].id, entity_type="PIPELINE_LENGTH_KM", entity_value="80.0 km", normalized_value="80.0", confidence=0.94, page_number=1, context_snippet="Municipal Water Piping 80 km 12 Inch")
     ]
     for ent in entities_b4:
         db.add(ent)
     db.commit()
 
+    # =============================================================
+    # BIDDER 5: BHARAT PETROLEUM INFRA CONSORTIUM (REVIEW / HOLD - SCORE: 85%, RISK: MEDIUM)
+    # =============================================================
+    b5 = Bidder(
+        tender_id=tender1.id,
+        legal_name="BHARAT PETROLEUM INFRA CONSORTIUM",
+        trade_name="Bharat Petroleum Infra",
+        pan="AABCB9012B",
+        gstin="24AABCB9012B1Z9",
+        registered_address="Bharat Infra Towers, SG Highway, Ahmedabad, Gujarat 380054",
+        contact_information={"email": "tenders@bharatinfra.in", "phone": "+91 79 2685 4900"},
+        bidder_type="INDIAN_EPC_CONTRACTOR",
+        country="INDIA",
+        oil_gas_experience_years=12.0,
+        pipeline_experience_years=10.0,
+        udyam_number="UDYAM-GJ-01-0089451",
+        cin="U45200GJ2015PTC089201",
+        email="tenders@bharatinfra.in",
+        phone="+91 79 2685 4900",
+        contact_person="Ketan B. Patel (Managing Partner)",
+        status="UNDER_EVALUATION"
+    )
+    db.add(b5)
+    db.commit()
+    db.refresh(b5)
+
+    bid5 = Bid(
+        tender_id=tender1.id,
+        bidder_id=b5.id,
+        bid_reference_number="BID-MOPNG-2026-BHARAT-005",
+        submission_date=datetime.now(timezone.utc) - timedelta(days=1),
+        technical_bid_status="UNDER_EVALUATION",
+        financial_bid_amount=2290000000.0,
+        currency="INR",
+        remarks="Under Review: Pipeline experience certificate issued in affiliate joint venture name; 1 CV has borderline 7.5 yrs experience requiring officer verification."
+    )
+    db.add(bid5)
+
+    p5_1 = BidderProject(
+        bidder_id=b5.id,
+        project_name="Gujarat Gas Transmission & CGD Feeder Grid Laying",
+        client_name="Gujarat Gas Limited",
+        client_type="PUBLIC_SECTOR_UNDERTAKING",
+        sector="OIL_AND_GAS",
+        project_type="PIPELINE_CONSTRUCTION",
+        pipeline_type="NATURAL_GAS_TRANSMISSION",
+        pipeline_length_km=120.0,
+        pipeline_diameter="24 Inch NB API 5L X60",
+        project_value=980000000.0,
+        currency="INR",
+        location="Surat & Bharuch",
+        start_date=datetime.now(timezone.utc) - timedelta(days=365*3),
+        completion_date=datetime.now(timezone.utc) - timedelta(days=190),
+        scope_of_work="Laying 120 km 24-inch natural gas transmission line under Bharat-PetroCon JV consortium",
+        bidder_role="CONSORTIUM_LEADER",
+        contract_reference="GGL/PL/2022/07"
+    )
+    db.add(p5_1)
+
+    staff_b5 = [
+        BidderPersonnel(bidder_id=b5.id, name="Hardik Shah", designation="Project Lead", qualification="B.Tech Mechanical", years_of_experience=11.0, pipeline_experience_years=10.0),
+        BidderPersonnel(bidder_id=b5.id, name="Bhavesh Joshi", designation="Senior Mechanical Engineer", qualification="B.E. Mechanical", years_of_experience=9.5, pipeline_experience_years=9.0),
+        BidderPersonnel(bidder_id=b5.id, name="Chirag Dave", designation="Welding & QA Inspector", qualification="B.E. Metallurgy", years_of_experience=9.0, pipeline_experience_years=8.5),
+        BidderPersonnel(bidder_id=b5.id, name="Manish Vyas", designation="NDT Level II Specialist", qualification="Diploma Mechanical", years_of_experience=8.5, pipeline_experience_years=8.0),
+        BidderPersonnel(bidder_id=b5.id, name="Nilesh Parmar", designation="Site Engineer", qualification="B.Tech Mechanical", years_of_experience=7.5, pipeline_experience_years=7.5)
+    ]
+    for s in staff_b5:
+        db.add(s)
+
+    b5_stat_pdf = os.path.join(settings.UPLOAD_DIR, "Bharat_Statutory_GST_PAN.pdf")
+    b5_fin_pdf = os.path.join(settings.UPLOAD_DIR, "Bharat_Turnover_Financials.pdf")
+    b5_exp_pdf = os.path.join(settings.UPLOAD_DIR, "Bharat_120km_Pipeline_Experience.pdf")
+    b5_man_pdf = os.path.join(settings.UPLOAD_DIR, "Bharat_Manpower_CVs.pdf")
+    b5_hse_pdf = os.path.join(settings.UPLOAD_DIR, "Bharat_HSE_ISO45001_Policy.pdf")
+
+    create_sample_pdf(
+        b5_stat_pdf,
+        "BHARAT PETROLEUM INFRA - STATUTORY CERTIFICATES",
+        [
+            ("1. GST & PAN Registration", "Legal Name: BHARAT PETROLEUM INFRA CONSORTIUM\nGSTIN: 24AABCB9012B1Z9 (Gujarat)\nPAN: AABCB9012B\nStatus: ACTIVE")
+        ]
+    )
+    create_sample_pdf(
+        b5_fin_pdf,
+        "BHARAT PETROLEUM INFRA - AUDITED FINANCIAL TURNOVER",
+        [
+            ("1. 3-Year Audited Turnover", "FY 2023-24: INR 35.00 Crore\nFY 2024-25: INR 32.00 Crore\nFY 2025-26: INR 30.00 Crore\nAverage Annual Turnover = INR 32.33 Crore (Exceeds ₹25.00 Cr mandatory threshold).")
+        ]
+    )
+    create_sample_pdf(
+        b5_exp_pdf,
+        "BHARAT PETROLEUM INFRA - PIPELINE WORK CERTIFICATE",
+        [
+            ("1. Natural Gas Feeder Grid (Issued to Bharat-PetroCon JV)", "Client: Gujarat Gas Limited\nProject: 120 KM, 24 Inch NB Natural Gas Transmission Line.\nNote: Certificate issued in Consortium JV name; requires Officer Review for JV parent entity pass-through.")
+        ]
+    )
+    create_sample_pdf(
+        b5_man_pdf,
+        "BHARAT PETROLEUM INFRA - KEY PERSONNEL CVs",
+        [
+            ("1. Personnel Roster", "1. Hardik Shah (Project Lead) - 11 yrs exp\n2. Bhavesh Joshi (Senior Engineer) - 9.5 yrs exp\n3. Chirag Dave (QA Inspector) - 9.0 yrs exp\n4. Manish Vyas (NDT Level II) - 8.5 yrs exp\n5. Nilesh Parmar (Site Engineer) - 7.5 yrs exp (Borderline vs 8.0 yrs threshold, flagged for review).")
+        ]
+    )
+    create_sample_pdf(
+        b5_hse_pdf,
+        "BHARAT PETROLEUM INFRA - HSE SAFETY POLICY",
+        [
+            ("1. Safety Certification", "ISO 45001:2018 Certified & ISO 14001:2015 Certified. Zero-fatality safety commitment.")
+        ]
+    )
+
+    docs_b5 = [
+        Document(bidder_id=b5.id, tender_id=tender1.id, document_name="01_GST_Registration_Bharat.pdf", file_path=b5_stat_pdf, document_type="GST_CERTIFICATE", page_count=1, extracted_text="Legal Name: BHARAT PETROLEUM INFRA CONSORTIUM\nGSTIN: 24AABCB9012B1Z9\nPAN: AABCB9012B\nStatus: ACTIVE"),
+        Document(bidder_id=b5.id, tender_id=tender1.id, document_name="03_Financial_Statement_Bharat.pdf", file_path=b5_fin_pdf, document_type="FINANCIAL_STATEMENT", page_count=1, extracted_text="FY 2023-24: INR 35.00 Crore\nFY 2024-25: INR 32.00 Crore\nFY 2025-26: INR 30.00 Crore\nAverage: INR 32.33 Crore"),
+        Document(bidder_id=b5.id, tender_id=tender1.id, document_name="04_Similar_Pipeline_Experience_Bharat.pdf", file_path=b5_exp_pdf, document_type="PIPELINE_PROJECT_DOCUMENT", page_count=1, extracted_text="Client: Gujarat Gas Limited\nLength: 120 KM | Diameter: 24 Inch NB\nIssued to Bharat-PetroCon JV consortium. Subject to officer verification."),
+        Document(bidder_id=b5.id, tender_id=tender1.id, document_name="05_Key_Personnel_CVs_Bharat.pdf", file_path=b5_man_pdf, document_type="PERSONNEL_CV", page_count=1, extracted_text="Hardik Shah (11 yrs)\nBhavesh Joshi (9.5 yrs)\nChirag Dave (9.0 yrs)\nManish Vyas (8.5 yrs)\nNilesh Parmar (7.5 yrs)"),
+        Document(bidder_id=b5.id, tender_id=tender1.id, document_name="07_HSE_and_Safety_Policy_Bharat.pdf", file_path=b5_hse_pdf, document_type="HSE_DOCUMENT", page_count=1, extracted_text="ISO 45001:2018 Certified\nISO 14001:2015 Certified\nZero-fatality policy")
+    ]
+    for d in docs_b5:
+        db.add(d)
+    db.commit()
+
+    entities_b5 = [
+        ExtractedEntity(document_id=docs_b5[0].id, entity_type="GSTIN", entity_value="24AABCB9012B1Z9", normalized_value="24AABCB9012B1Z9", confidence=0.98, page_number=1, context_snippet="GSTIN: 24AABCB9012B1Z9 ACTIVE"),
+        ExtractedEntity(document_id=docs_b5[0].id, entity_type="PAN", entity_value="AABCB9012B", normalized_value="AABCB9012B", confidence=0.98, page_number=1, context_snippet="PAN: AABCB9012B"),
+        ExtractedEntity(document_id=docs_b5[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2023-24: INR 35.00 Crore", normalized_value="350000000.0", confidence=0.96, page_number=1, context_snippet="FY 2023-24: INR 35.00 Crore"),
+        ExtractedEntity(document_id=docs_b5[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2024-25: INR 32.00 Crore", normalized_value="320000000.0", confidence=0.96, page_number=1, context_snippet="FY 2024-25: INR 32.00 Crore"),
+        ExtractedEntity(document_id=docs_b5[1].id, entity_type="FINANCIAL_TURNOVER", entity_value="FY 2025-26: INR 30.00 Crore", normalized_value="300000000.0", confidence=0.96, page_number=1, context_snippet="FY 2025-26: INR 30.00 Crore"),
+        ExtractedEntity(document_id=docs_b5[2].id, entity_type="PIPELINE_LENGTH_KM", entity_value="120.0 km", normalized_value="120.0", confidence=0.95, page_number=1, context_snippet="120 KM 24 Inch NB Natural Gas Feeder Grid"),
+        ExtractedEntity(document_id=docs_b5[3].id, entity_type="MANPOWER_RECORD", entity_value="Hardik Shah (11.0 yrs)", normalized_value="11.0", confidence=0.95, page_number=1, context_snippet="Hardik Shah (Project Lead) - 11 yrs exp"),
+        ExtractedEntity(document_id=docs_b5[4].id, entity_type="HSE_CERTIFICATION", entity_value="ISO 45001:2018 & ISO 14001:2015", normalized_value="ISO_45001_14001", confidence=0.95, page_number=1, context_snippet="ISO 45001 & ISO 14001 Certified")
+    ]
+    for ent in entities_b5:
+        db.add(ent)
+    db.commit()
+
     # -------------------------------------------------------------
-    # EXECUTE AUTOMATED COMPLIANCE VERIFICATION ON ALL 4 BIDDERS
+    # EXECUTE AUTOMATED COMPLIANCE VERIFICATION & GENERATE REPORTS FOR ALL 5 BIDDERS
     # -------------------------------------------------------------
-    logger.info("Executing 7 Core Checkers on all 4 Demonstration Bidders...")
-    for b in [b1, b2, b3, b4]:
-        res = ComplianceEngine.run_full_verification(db=db, bidder_id=b.id, officer_id=officer_user.id, officer_name=officer_user.name)
-        logger.info(f"Verified Bidder '{b.legal_name}' -> Score: {res['score']['overall_score']}%, Risk: {res['risk']['risk_level']}, Status: {res['status']}")
+    from app.services.report_generator import ReportGenerator
+    from app.models.models import OfficerDecision, Recommendation
+    all_5_bidders = [b1, b2, b3, b4, b5]
+    logger.info("Executing Automated Compliance Verification & Report Generation for all 5 Bidders...")
+    for b in all_5_bidders:
+        ComplianceEngine.run_full_verification(db=db, bidder_id=b.id, officer_id=officer_user.id, officer_name=officer_user.name)
+
+    # 1. Bidder 1: PASS / QUALIFIED
+    b1.status = "QUALIFIED"
+    db.add(OfficerDecision(
+        bid_id=b1.id, officer_id=officer_user.id, officer_name=officer_user.name,
+        decision_type="FINAL_BID_DECISION", ai_status="PASS", officer_status="QUALIFIED",
+        officer_reason="All 7 mandatory statutory, financial, pipeline experience, manpower, and HSE criteria verified 100% compliant."
+    ))
+
+    # 2. Bidder 2: PASS / QUALIFIED
+    b2.status = "QUALIFIED"
+    db.add(OfficerDecision(
+        bid_id=b2.id, officer_id=officer_user.id, officer_name=officer_user.name,
+        decision_type="FINAL_BID_DECISION", ai_status="PASS", officer_status="QUALIFIED",
+        officer_reason="Substantial Tier-1 EPC contractor credentials. 100% compliant across all statutory, financial, and technical criteria."
+    ))
+
+    # 3. Bidder 3: FAIL / DISQUALIFIED
+    b3.status = "DISQUALIFIED"
+    rec3 = db.query(Recommendation).filter(Recommendation.bidder_id == b3.id).first()
+    if rec3:
+        rec3.ai_recommendation = "Reject"
+        rec3.justification = "Failed statutory & financial criteria: GSTIN marked CANCELLED on GST portal, and 3-Year average turnover of ₹14.23 Cr falls below mandatory ₹25.00 Cr threshold."
+    db.add(OfficerDecision(
+        bid_id=b3.id, officer_id=officer_user.id, officer_name=officer_user.name,
+        decision_type="FINAL_BID_DECISION", ai_status="FAIL", officer_status="DISQUALIFIED",
+        officer_reason="Disqualified per GFR 2017 & MoPNG Tender Clause 3.2. GSTIN cancelled and annual turnover shortfall."
+    ))
+
+    # 4. Bidder 4: FAIL / DISQUALIFIED
+    b4.status = "DISQUALIFIED"
+    rec4 = db.query(Recommendation).filter(Recommendation.bidder_id == b4.id).first()
+    if rec4:
+        rec4.ai_recommendation = "Reject"
+        rec4.justification = "Failed technical & HSE criteria: Submitted water pipeline (12-inch) does not meet 24-inch natural gas requirement, and mandatory ISO 45001 safety certification is missing."
+    db.add(OfficerDecision(
+        bid_id=b4.id, officer_id=officer_user.id, officer_name=officer_user.name,
+        decision_type="FINAL_BID_DECISION", ai_status="FAIL", officer_status="DISQUALIFIED",
+        officer_reason="Disqualified per Tender Clause 4.1 & 7.1. Technical experience and HSE safety standards not met."
+    ))
+
+    # 5. Bidder 5: IN REVIEW / UNDER_EVALUATION
+    b5.status = "UNDER_REVIEW"
+    rec5 = db.query(Recommendation).filter(Recommendation.bidder_id == b5.id).first()
+    if rec5:
+        rec5.ai_recommendation = "Manual Review Required"
+        rec5.justification = "Pipeline completion certificate issued under Bharat-PetroCon JV consortium; officer confirmation required for parent entity qualification pass-through."
+    db.add(OfficerDecision(
+        bid_id=b5.id, officer_id=officer_user.id, officer_name=officer_user.name,
+        decision_type="FINAL_BID_DECISION", ai_status="REVIEW", officer_status="REVIEW / HOLD",
+        officer_reason="Pending Joint Venture legal endorsement documentation for parent consortium entity qualification pass-through."
+    ))
+
+    db.commit()
+
+    # Generate rich reports for all 5 bidders with their updated statuses
+    for b in all_5_bidders:
+        rep = ReportGenerator.generate_bid_report(db=db, bid_id=b.id, officer=officer_user)
+        logger.info(f"Generated Official Report for '{b.legal_name}' -> Status: {b.status}, Report: {rep.report_number}")
 
     db.close()
-    logger.info("Database seeding successfully completed!")
+    logger.info("Database seeding successfully completed with 5 distinct scenario bidders: 2 PASS, 2 FAIL, 1 IN REVIEW!")
 
 if __name__ == "__main__":
     seed()

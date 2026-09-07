@@ -1,4 +1,5 @@
 import uuid
+from typing import Optional
 from datetime import datetime, timezone
 from sqlalchemy import (
     Column, String, Integer, Float, Boolean, DateTime, Text, ForeignKey, JSON, Index
@@ -20,12 +21,20 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     username = Column(String(100), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    role = Column(String(50), default="PROCUREMENT_OFFICER")  # ADMIN, PROCUREMENT_OFFICER
+    role = Column(String(50), default="PROCUREMENT_OFFICER")  # ADMIN, PROCUREMENT_OFFICER, BIDDER
     department = Column(String(255), default="Ministry of Petroleum & Natural Gas - Tender Evaluation Cell")
     is_active = Column(Boolean, default=True)
+    bidder_id = Column(String(36), nullable=True, index=True)
     created_at = Column(DateTime, default=get_utc_now)
-    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
-    
+
+    @property
+    def full_name(self) -> str:
+        return self.name
+
+    @property
+    def effective_bidder_id(self) -> Optional[str]:
+        return self.bidder_id
+
     tenders_created = relationship("Tender", back_populates="creator")
     officer_reviews = relationship("OfficerReview", back_populates="officer")
     audit_logs = relationship("AuditLog", back_populates="user")
@@ -78,9 +87,31 @@ class Tender(Base):
     
     creator = relationship("User", back_populates="tenders_created")
     requirements = relationship("Requirement", back_populates="tender", cascade="all, delete-orphan")
+    clauses = relationship("TenderClause", back_populates="tender", cascade="all, delete-orphan")
     bidders = relationship("Bidder", back_populates="tender", cascade="all, delete-orphan")
     bids = relationship("Bid", back_populates="tender", cascade="all, delete-orphan")
     documents = relationship("Document", back_populates="tender", cascade="all, delete-orphan")
+
+class TenderClause(Base):
+    """
+    Segmented Tender Clause with Classification and Domain Requirement Detection
+    """
+    __tablename__ = "tender_clauses"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    tender_id = Column(String(36), ForeignKey("tenders.id"), nullable=False, index=True)
+    clause_number = Column(String(50), nullable=True)
+    clause_type = Column(String(50), default="REQUIREMENT", index=True)  # REQUIREMENT, INFORMATIONAL, SCOPE, TECHNICAL_SPECIFICATION, COMMERCIAL, OTHER
+    original_text = Column(Text, nullable=False)
+    normalized_text = Column(Text, nullable=True)
+    page_number = Column(Integer, default=1)
+    category = Column(String(100), nullable=True, index=True)
+    confidence = Column(Float, default=1.0)
+    is_requirement = Column(Boolean, default=True)
+    extracted_entities = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=get_utc_now)
+
+    tender = relationship("Tender", back_populates="clauses")
 
 class Requirement(Base):
     """
@@ -119,6 +150,7 @@ class Requirement(Base):
     
     tender = relationship("Tender", back_populates="requirements")
     compliance_checks = relationship("ComplianceCheck", back_populates="requirement", cascade="all, delete-orphan")
+    chunks = relationship("EvidenceChunk", back_populates="requirement")
 
 # Alias for TenderRequirement
 TenderRequirement = Requirement
@@ -147,6 +179,7 @@ class Bidder(Base):
     phone = Column(String(50), nullable=True)
     contact_person = Column(String(255), nullable=True)
     status = Column(String(50), default="SUBMITTED", index=True)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=True, index=True)
     submitted_at = Column(DateTime, default=get_utc_now)
     created_at = Column(DateTime, default=get_utc_now)
     updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
@@ -160,6 +193,7 @@ class Bidder(Base):
     def bidder_name(self, value):
         self.legal_name = value
     
+    user = relationship("User", foreign_keys=[user_id])
     tender = relationship("Tender", back_populates="bidders")
     bids = relationship("Bid", back_populates="bidder", cascade="all, delete-orphan")
     projects = relationship("BidderProject", back_populates="bidder", cascade="all, delete-orphan")
@@ -171,6 +205,9 @@ class Bidder(Base):
     risk_assessment = relationship("RiskAssessment", uselist=False, back_populates="bidder", cascade="all, delete-orphan")
     recommendation = relationship("Recommendation", uselist=False, back_populates="bidder", cascade="all, delete-orphan")
     officer_reviews = relationship("OfficerReview", back_populates="bidder", cascade="all, delete-orphan")
+    risk_factors = relationship("RiskFactor", back_populates="bidder", cascade="all, delete-orphan")
+    officer_decisions = relationship("OfficerDecision", back_populates="bidder", cascade="all, delete-orphan")
+    compliance_reports = relationship("ComplianceReport", back_populates="bidder", cascade="all, delete-orphan")
 
 class Bid(Base):
     """
@@ -273,6 +310,7 @@ class Document(Base):
     bidder = relationship("Bidder", back_populates="documents")
     tender = relationship("Tender", back_populates="documents")
     pages = relationship("DocumentPage", back_populates="document", cascade="all, delete-orphan")
+    chunks = relationship("EvidenceChunk", back_populates="document", cascade="all, delete-orphan")
     entities = relationship("ExtractedEntity", back_populates="document", cascade="all, delete-orphan")
 
 class DocumentPage(Base):
@@ -285,13 +323,41 @@ class DocumentPage(Base):
     document_id = Column(String(36), ForeignKey("documents.id"), nullable=False, index=True)
     page_number = Column(Integer, nullable=False)
     page_text = Column(Text, nullable=True)
+    raw_text = Column(Text, nullable=True)
+    normalized_text = Column(Text, nullable=True)
     has_tables = Column(Boolean, default=False)
     ocr_applied = Column(Boolean, default=False)
     extraction_method = Column(String(50), default="PDF_TEXT")  # PDF_TEXT, TESSERACT_OCR
+    processing_status = Column(String(50), default="SUCCESS")
     confidence = Column(Float, default=1.0)
     created_at = Column(DateTime, default=get_utc_now)
     
     document = relationship("Document", back_populates="pages")
+
+class EvidenceChunk(Base):
+    """
+    Semantic Evidence Chunk for Vector Retrieval and AI Compliance Classification
+    """
+    __tablename__ = "evidence_chunks"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    document_id = Column(String(36), ForeignKey("documents.id"), nullable=False, index=True)
+    bidder_id = Column(String(36), ForeignKey("bidders.id"), nullable=True, index=True)
+    requirement_id = Column(String(36), ForeignKey("requirements.id"), nullable=True, index=True)
+    page_number = Column(Integer, default=1)
+    chunk_index = Column(Integer, default=0)
+    text = Column(Text, nullable=False)
+    raw_text = Column(Text, nullable=True)
+    normalized_text = Column(Text, nullable=True)
+    embedding_json = Column(JSON, nullable=True)
+    category = Column(String(100), nullable=True, index=True)
+    confidence = Column(Float, default=1.0)
+    similarity_score = Column(Float, default=0.0)
+    metadata_payload = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=get_utc_now)
+
+    document = relationship("Document", back_populates="chunks")
+    requirement = relationship("Requirement", back_populates="chunks")
 
 class ExtractedEntity(Base):
     """
@@ -357,6 +423,10 @@ class ComplianceCheck(Base):
     @property
     def requirement_description(self):
         return self.requirement.description if self.requirement else None
+
+    @property
+    def clause_number(self):
+        return self.requirement.clause_number if self.requirement else None
 
     @property
     def requirement_mandatory(self):
@@ -429,6 +499,7 @@ class RiskAssessment(Base):
     created_at = Column(DateTime, default=get_utc_now)
     
     bidder = relationship("Bidder", back_populates="risk_assessment")
+    factors = relationship("RiskFactor", back_populates="risk_assessment", cascade="all, delete-orphan")
 
 class Recommendation(Base):
     __tablename__ = "recommendations"
@@ -449,7 +520,7 @@ class OfficerReview(Base):
     id = Column(String(36), primary_key=True, default=generate_uuid)
     bidder_id = Column(String(36), ForeignKey("bidders.id"), nullable=False, index=True)
     requirement_id = Column(String(36), ForeignKey("requirements.id"), nullable=True, index=True)
-    officer_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    officer_id = Column(String(36), ForeignKey("users.id"), nullable=True, index=True)
     officer_name = Column(String(255), nullable=False)
     previous_status = Column(String(50), nullable=False)
     new_status = Column(String(50), nullable=False)
@@ -486,3 +557,169 @@ class AuditLog(Base):
     created_at = Column(DateTime, default=get_utc_now)
     
     user = relationship("User", back_populates="audit_logs")
+
+class VerificationRun(Base):
+    """
+    Phase 4: Verification Run Record preserving full evaluation history and summary statistics.
+    """
+    __tablename__ = "verification_runs"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    bid_id = Column(String(36), ForeignKey("bidders.id"), nullable=False, index=True)
+    tender_id = Column(String(36), ForeignKey("tenders.id"), nullable=True, index=True)
+    triggered_by = Column(String(255), default="SYSTEM")
+    status = Column(String(50), default="COMPLETED")
+    total_requirements = Column(Integer, default=0)
+    pass_count = Column(Integer, default=0)
+    fail_count = Column(Integer, default=0)
+    review_count = Column(Integer, default=0)
+    insufficient_count = Column(Integer, default=0)
+    not_applicable_count = Column(Integer, default=0)
+    compliance_score = Column(Float, default=0.0)
+    compliance_percentage = Column(Float, default=0.0)
+    risk_level = Column(String(50), default="LOW")
+    recommendation = Column(String(100), default="Recommended for Officer Review")
+    run_metadata = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=get_utc_now)
+
+    bidder = relationship("Bidder", backref="verification_runs")
+    tender = relationship("Tender", backref="verification_runs")
+
+class OfficerOverride(Base):
+    """
+    Phase 4: Explicit Officer Override Record maintaining immutable audit trail
+    without overwriting the original AI determination baseline.
+    """
+    __tablename__ = "officer_overrides"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    bid_id = Column(String(36), ForeignKey("bidders.id"), nullable=False, index=True)
+    requirement_id = Column(String(36), ForeignKey("requirements.id"), nullable=True, index=True)
+    compliance_check_id = Column(String(36), ForeignKey("compliance_checks.id"), nullable=True, index=True)
+    officer_id = Column(String(36), ForeignKey("users.id"), nullable=True, index=True)
+    officer_name = Column(String(255), nullable=False)
+    original_ai_status = Column(String(50), nullable=False)
+    overridden_status = Column(String(50), nullable=False)
+    override_reason = Column(Text, nullable=False)
+    action_type = Column(String(50), default="OFFICER_OVERRIDE")
+    timestamp = Column(DateTime, default=get_utc_now)
+    created_at = Column(DateTime, default=get_utc_now)
+
+    bidder = relationship("Bidder", backref="officer_overrides")
+    requirement = relationship("Requirement", backref="officer_overrides")
+    compliance_check = relationship("ComplianceCheck", backref="officer_overrides")
+    officer = relationship("User", backref="officer_overrides")
+
+# Model aliases for Phase 4 compliance engine
+ComplianceEvidence = Evidence
+
+class RiskFactor(Base):
+    """
+    Phase 5: Granular Risk Factor linking directly to an underlying requirement,
+    evidence snippet, source document, and page reference.
+    """
+    __tablename__ = "risk_factors"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    risk_assessment_id = Column(String(36), ForeignKey("risk_assessments.id", ondelete="CASCADE"), nullable=True, index=True)
+    bid_id = Column(String(36), ForeignKey("bidders.id"), nullable=False, index=True)
+    requirement_id = Column(String(36), ForeignKey("requirements.id"), nullable=True, index=True)
+    compliance_check_id = Column(String(36), ForeignKey("compliance_checks.id"), nullable=True, index=True)
+    factor_type = Column(String(50), nullable=False, index=True)
+    severity = Column(String(50), nullable=False, index=True)  # LOW, MEDIUM, HIGH, CRITICAL
+    description = Column(Text, nullable=False)
+    evidence_snippet = Column(Text, nullable=True)
+    source_document = Column(String(255), nullable=True)
+    page_number = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=get_utc_now)
+
+    risk_assessment = relationship("RiskAssessment", back_populates="factors")
+    bidder = relationship("Bidder", back_populates="risk_factors")
+    requirement = relationship("Requirement")
+    compliance_check = relationship("ComplianceCheck")
+
+class OfficerDecision(Base):
+    """
+    Phase 5: Procurement Officer Decision Record capturing both per-requirement
+    determinations (accept AI or override) and overall final bid decisions,
+    strictly preserving the original AI baseline.
+    """
+    __tablename__ = "officer_decisions"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    bid_id = Column(String(36), ForeignKey("bidders.id"), nullable=False, index=True)
+    requirement_id = Column(String(36), ForeignKey("requirements.id"), nullable=True, index=True)
+    compliance_check_id = Column(String(36), ForeignKey("compliance_checks.id"), nullable=True, index=True)
+    officer_id = Column(String(36), ForeignKey("users.id"), nullable=True, index=True)
+    officer_name = Column(String(255), nullable=False)
+    decision_type = Column(String(50), default="REQUIREMENT_DECISION", index=True)  # REQUIREMENT_DECISION, FINAL_BID_DECISION
+    ai_status = Column(String(50), nullable=False)  # Original AI status (e.g. PASS, FAIL, REVIEW, INSUFFICIENT)
+    ai_confidence = Column(Float, default=1.0)
+    officer_status = Column(String(50), nullable=False)  # ACCEPT_AI_RESULT, PASS, FAIL, REVIEW, INSUFFICIENT, QUALIFIED, DISQUALIFIED, REVIEW / HOLD
+    officer_reason = Column(Text, nullable=False)  # Mandatory justification
+    is_override = Column(Boolean, default=False)
+    decision_timestamp = Column(DateTime, default=get_utc_now, index=True)
+    created_at = Column(DateTime, default=get_utc_now)
+
+    bidder = relationship("Bidder", back_populates="officer_decisions")
+    requirement = relationship("Requirement")
+    compliance_check = relationship("ComplianceCheck")
+    officer = relationship("User")
+
+class AuditEvent(Base):
+    """
+    Phase 5: Section 4 GFR 2017 Compliant Immutable Audit Record.
+    Captures complete lifecycle events across tender, bidder, verification, review, and reports.
+    """
+    __tablename__ = "audit_events"
+
+    event_id = Column(String(36), primary_key=True, default=generate_uuid)
+    timestamp = Column(DateTime, default=get_utc_now, index=True)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=True, index=True)
+    user_name = Column(String(255), default="SYSTEM")
+    role = Column(String(50), default="SYSTEM", index=True)  # ADMIN, PROCUREMENT_OFFICER, BIDDER, SYSTEM
+    action = Column(String(100), nullable=False, index=True)
+    entity_type = Column(String(50), nullable=False, index=True)
+    entity_id = Column(String(36), nullable=False, index=True)
+    tender_id = Column(String(36), nullable=True, index=True)
+    bidder_id = Column(String(36), nullable=True, index=True)
+    description = Column(Text, nullable=False)
+    metadata_payload = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=get_utc_now)
+
+    user = relationship("User")
+
+class ComplianceReport(Base):
+    """
+    Phase 5: Official Petroleum Bid Compliance Report record
+    """
+    __tablename__ = "compliance_reports"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    bid_id = Column(String(36), ForeignKey("bidders.id"), nullable=False, index=True)
+    tender_id = Column(String(36), ForeignKey("tenders.id"), nullable=True, index=True)
+    report_number = Column(String(100), unique=True, index=True, nullable=False)
+    title = Column(String(255), nullable=False)
+    generated_by_id = Column(String(36), ForeignKey("users.id"), nullable=True)
+    generated_by_name = Column(String(255), default="SYSTEM")
+    assessment_date = Column(DateTime, default=get_utc_now)
+    compliance_score = Column(Float, default=0.0)
+    risk_level = Column(String(50), default="LOW")
+    risk_score = Column(Float, default=0.0)
+    ai_recommendation = Column(String(100), default="Recommended for Officer Review")
+    final_officer_decision = Column(String(50), nullable=True)
+    executive_summary = Column(JSON, default=dict)
+    requirement_summary = Column(JSON, default=list)
+    detailed_findings = Column(JSON, default=list)
+    officer_decisions = Column(JSON, default=list)
+    risk_analysis = Column(JSON, default=dict)
+    audit_information = Column(JSON, default=dict)
+    pdf_path = Column(String(500), nullable=True)
+    html_content = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=get_utc_now)
+
+    bidder = relationship("Bidder", back_populates="compliance_reports")
+    tender = relationship("Tender")
+    generated_by = relationship("User")
+
+

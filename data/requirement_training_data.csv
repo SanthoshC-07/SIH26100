@@ -1,0 +1,129 @@
+text,label
+The bidder shall have valid GST registration certificate.,GST_TAX_COMPLIANCE
+Bidder must possess active GSTIN in the relevant State/UT.,GST_TAX_COMPLIANCE
+Submit latest GSTR-3B filings for the last 12 months.,GST_TAX_COMPLIANCE
+Goods and Services Tax registration is mandatory for all bidders.,GST_TAX_COMPLIANCE
+The contractor shall furnish proof of GST registration.,GST_TAX_COMPLIANCE
+Valid GSTIN number must be submitted along with the bid.,GST_TAX_COMPLIANCE
+Bidder must be registered under GST Act 2017.,GST_TAX_COMPLIANCE
+GSTIN certificate must be valid and active at the time of bid submission.,GST_TAX_COMPLIANCE
+The bidder shall submit GST returns for the preceding financial year.,GST_TAX_COMPLIANCE
+Latest GST compliance certificate from CA is mandatory.,GST_TAX_COMPLIANCE
+Bidder must have filed GSTR-1 and GSTR-3B for all applicable months.,GST_TAX_COMPLIANCE
+GST registration in the state where the pipeline work is to be executed.,GST_TAX_COMPLIANCE
+The firm must have a valid and subsisting GST registration number.,GST_TAX_COMPLIANCE
+Submit copy of GST registration certificate and last filed return.,GST_TAX_COMPLIANCE
+GSTIN must match the legal entity name submitting the bid.,GST_TAX_COMPLIANCE
+The bidder must be registered as MSME under Udyam Registration Portal.,MSME_UDYAM_ELIGIBILITY
+Udyam Registration Number is mandatory for MSME category bidders.,MSME_UDYAM_ELIGIBILITY
+Submit valid Udyam Registration Certificate for micro or small enterprise status.,MSME_UDYAM_ELIGIBILITY
+MSME registered bidders must provide Udyam certificate.,MSME_UDYAM_ELIGIBILITY
+The contractor shall hold a valid Udyam Registration Certificate.,MSME_UDYAM_ELIGIBILITY
+Micro and small enterprises must submit MSME/Udyam registration proof.,MSME_UDYAM_ELIGIBILITY
+Udyam registration is required for bidders claiming MSME preference.,MSME_UDYAM_ELIGIBILITY
+The bidder classified as small enterprise must submit valid Udyam number.,MSME_UDYAM_ELIGIBILITY
+MSME status shall be verified through Udyam Registration Portal.,MSME_UDYAM_ELIGIBILITY
+Udyam registration certificate must be valid during the bid period.,MSME_UDYAM_ELIGIBILITY
+Submit MSME Udyam certificate for preference in public procurement.,MSME_UDYAM_ELIGIBILITY
+The bidder must have average annual turnover of at least INR 25 crore.,FINANCIAL_ELIGIBILITY
+Average annual financial turnover during last 3 financial years must be minimum INR 10 crore.,FINANCIAL_ELIGIBILITY
+The contractor shall demonstrate financial capability with annual turnover of INR 50 crore or above.,FINANCIAL_ELIGIBILITY
+Audited balance sheets must show average turnover of INR 20 crore over last 3 years.,FINANCIAL_ELIGIBILITY
+Minimum net worth requirement is INR 5 crore as on last financial year.,FINANCIAL_ELIGIBILITY
+CA certified turnover certificate for FY 2022-23, FY 2023-24, FY 2024-25 is required.,FINANCIAL_ELIGIBILITY
+The bidder must have a solvency certificate from a scheduled bank.,FINANCIAL_ELIGIBILITY
+Financial eligibility requires minimum average turnover exceeding the threshold amount.,FINANCIAL_ELIGIBILITY
+Audited financial statements for the preceding three financial years shall be submitted.,FINANCIAL_ELIGIBILITY
+The bidder's annual turnover must not be less than INR 15 crore in any of the last 3 years.,FINANCIAL_ELIGIBILITY
+CA certified statement showing average annual turnover over three years.,FINANCIAL_ELIGIBILITY
+Bank solvency certificate from a nationalized bank is mandatory.,FINANCIAL_ELIGIBILITY
+The firm must show positive net worth and no accumulated losses.,FINANCIAL_ELIGIBILITY
+Annual turnover exceeding INR 100 crore demonstrates financial capacity.,FINANCIAL_ELIGIBILITY
+Bidder must submit ITR acknowledgements and CA certified turnover details.,FINANCIAL_ELIGIBILITY
+The bidder shall have completed at least one similar natural gas pipeline project.,EXPERIENCE_ELIGIBILITY
+Bidder must have executed EPC works in the petroleum and natural gas sector.,EXPERIENCE_ELIGIBILITY
+Prior experience of minimum 7 years in oil and gas pipeline construction is required.,EXPERIENCE_ELIGIBILITY
+The contractor must have commissioned a cross-country natural gas transmission pipeline.,EXPERIENCE_ELIGIBILITY
+Bidder must demonstrate experience in constructing pipelines of minimum 100 km length.,EXPERIENCE_ELIGIBILITY
+Experience in HDD river crossing works for petroleum pipelines is mandatory.,EXPERIENCE_ELIGIBILITY
+The firm must have completed at least one pipeline project valued above INR 50 crore.,EXPERIENCE_ELIGIBILITY
+Submit experience certificates from GAIL, IOCL, ONGC, BPCL or similar PSUs.,EXPERIENCE_ELIGIBILITY
+Pipeline execution experience of minimum 5 years in the hydrocarbon sector.,EXPERIENCE_ELIGIBILITY
+The bidder shall have experience in welding and laying of API 5L grade pipelines.,EXPERIENCE_ELIGIBILITY
+Completion certificate from client for at least one similar oil and gas project.,EXPERIENCE_ELIGIBILITY
+Experience in pipeline hydrostatic testing and pre-commissioning activities.,EXPERIENCE_ELIGIBILITY
+The contractor must have prior experience in executing petroleum infrastructure projects.,EXPERIENCE_ELIGIBILITY
+Submit client reference letters confirming successful completion of similar projects.,EXPERIENCE_ELIGIBILITY
+Minimum 3 years of sector-specific experience in natural gas transmission is required.,EXPERIENCE_ELIGIBILITY
+The bidder must submit Original Equipment Manufacturer authorization for line pipe supply.,OEM_AUTHORIZATION
+Manufacturer Authorization Form (MAF) from OEM is mandatory for pipeline materials.,OEM_AUTHORIZATION
+Submit OEM certificate confirming the bidder is an authorized dealer or stockist.,OEM_AUTHORIZATION
+Line pipe manufacturer must authorize the bidder for supply of API 5L grade pipes.,OEM_AUTHORIZATION
+OEM authorization letter for valves and fittings conforming to API 6D is required.,OEM_AUTHORIZATION
+The supplier must be an authorized distributor of the OEM for the specified equipment.,OEM_AUTHORIZATION
+Manufacturer authorization certificate must be submitted along with the bid.,OEM_AUTHORIZATION
+OEM written authorization for supply of specified petroleum pipeline materials.,OEM_AUTHORIZATION
+Bidder must furnish OEM authorization for compressor packages and related equipment.,OEM_AUTHORIZATION
+Submit back-to-back OEM warranty commitment letter for specified materials.,OEM_AUTHORIZATION
+Manufacturer authorization form valid for the entire duration of the contract period.,OEM_AUTHORIZATION
+The bidder shall furnish a self-declaration stating it is not blacklisted or debarred.,BLACKLISTING_DEBARMENT
+Submit affidavit confirming the firm is not on any government blacklist or debarred list.,BLACKLISTING_DEBARMENT
+The contractor must not be debarred by any central or state government authority.,BLACKLISTING_DEBARMENT
+Certificate stating the bidder is not on CVC blacklist or CPWD debarment list.,BLACKLISTING_DEBARMENT
+Bidder must certify it has not been barred from participating in government tenders.,BLACKLISTING_DEBARMENT
+Self-declaration of non-debarment from GeM, GAIL, IOCL, and ONGC is required.,BLACKLISTING_DEBARMENT
+The firm must submit a declaration of no conviction or criminal proceedings.,BLACKLISTING_DEBARMENT
+Affidavit on non-judicial stamp paper confirming non-blacklisting status.,BLACKLISTING_DEBARMENT
+Declaration that the bidder is not in the list of ineligible firms maintained by Ministry of Finance.,BLACKLISTING_DEBARMENT
+The contractor must certify no debarment or suspension from any public procurement body.,BLACKLISTING_DEBARMENT
+The pipeline shall be designed to withstand MAOP of 100 bar as per applicable standards.,TECHNICAL_SPECIFICATION
+Material specification for line pipe shall conform to API 5L Grade X70 PSL2.,TECHNICAL_SPECIFICATION
+Cathodic protection system shall be designed with minimum 25 year design life.,TECHNICAL_SPECIFICATION
+Pipeline wall thickness calculation shall be performed as per ASME B31.8.,TECHNICAL_SPECIFICATION
+Valve stations shall be equipped with SCADA-controlled ball valves of API 6D standard.,TECHNICAL_SPECIFICATION
+Depth of cover for buried pipeline shall not be less than 1.2 meters in agricultural land.,TECHNICAL_SPECIFICATION
+Welding procedure qualification shall comply with API 1104 requirements.,TECHNICAL_SPECIFICATION
+Pipe coating specification shall include 3-layer polyethylene coating per DIN 30670.,TECHNICAL_SPECIFICATION
+Pipeline route markers shall be installed at every 200 meters as per statutory requirement.,TECHNICAL_SPECIFICATION
+The pig launcher and receiver design shall be compatible with PIMS requirements.,TECHNICAL_SPECIFICATION
+Sectionalizing valve station shall include remotely operated ball valves and pressure transmitters.,TECHNICAL_SPECIFICATION
+Pipeline design shall incorporate earthquake loading per IS 1893 for seismic zones.,TECHNICAL_SPECIFICATION
+Valve shall conform to API 6D standard for pipeline valves and fittings.,INDUSTRY_STANDARD_COMPLIANCE
+Welding shall be in accordance with API 1104 Welding of Pipelines and Related Facilities.,INDUSTRY_STANDARD_COMPLIANCE
+Hydrostatic testing shall be conducted as per ASME B31.8 requirements.,INDUSTRY_STANDARD_COMPLIANCE
+All pipeline materials shall comply with applicable BIS or API standards.,INDUSTRY_STANDARD_COMPLIANCE
+Piping design shall conform to ASME B31.4 for liquid petroleum transportation pipelines.,INDUSTRY_STANDARD_COMPLIANCE
+Line pipe shall conform to API 5L or equivalent BIS standard IS 3589.,INDUSTRY_STANDARD_COMPLIANCE
+All electrical installations shall comply with IS 5572 for hazardous area classification.,INDUSTRY_STANDARD_COMPLIANCE
+The contractor shall comply with OISD-GDN-141 for city or local natural gas distribution.,INDUSTRY_STANDARD_COMPLIANCE
+Radiographic examination of welds shall conform to API 1104 or ASME Section V.,INDUSTRY_STANDARD_COMPLIANCE
+Pipeline crossing under roads and railways shall comply with RDSO specifications.,INDUSTRY_STANDARD_COMPLIANCE
+Coating inspection shall be carried out as per NACE SP0169 for external corrosion control.,INDUSTRY_STANDARD_COMPLIANCE
+Valves must comply with API 6D specification and ASME B16.34 standards.,INDUSTRY_STANDARD_COMPLIANCE
+All ball valves and check valves shall conform to API 6D standard and ASME B16.34.,INDUSTRY_STANDARD_COMPLIANCE
+Piping components must comply with ASME B16.5 and ASME B16.34 standards.,INDUSTRY_STANDARD_COMPLIANCE
+Pipeline materials and fittings must conform to API 6D and API 5L specifications.,INDUSTRY_STANDARD_COMPLIANCE
+Industry standard compliance with API 6D, ASME B31.8, and OISD-141 is mandatory.,INDUSTRY_STANDARD_COMPLIANCE
+Mandatory compliance with ASME B16.34 and API 6D for all pipeline valves.,INDUSTRY_STANDARD_COMPLIANCE
+The bidder must maintain ISO 45001 certified Occupational Health and Safety Management System.,SAFETY_REGULATORY_COMPLIANCE
+Submit valid ISO 14001 Environmental Management System certificate.,SAFETY_REGULATORY_COMPLIANCE
+The contractor shall comply with all HSE requirements as per Petroleum and Natural Gas Rules 1959.,SAFETY_REGULATORY_COMPLIANCE
+Zero fatality policy and comprehensive safety management plan shall be submitted.,SAFETY_REGULATORY_COMPLIANCE
+Site HSE plan must be aligned with OISD standards for hydrocarbon facility construction.,SAFETY_REGULATORY_COMPLIANCE
+All personnel working on the pipeline shall undergo mandatory HSE induction.,SAFETY_REGULATORY_COMPLIANCE
+The firm shall submit a corporate safety policy document duly signed by the CEO.,SAFETY_REGULATORY_COMPLIANCE
+Environmental clearance certificates and statutory approvals must be submitted.,SAFETY_REGULATORY_COMPLIANCE
+Contractor shall maintain Lost Time Injury Frequency Rate below 0.5 as per OSHA standards.,SAFETY_REGULATORY_COMPLIANCE
+Submit proof of safety training and HSE certifications for key site personnel.,SAFETY_REGULATORY_COMPLIANCE
+The pipeline contractor shall establish emergency response procedures for hydrocarbon leaks.,SAFETY_REGULATORY_COMPLIANCE
+The bidder shall ensure minimum 50 percent local content by value in the project.,MAKE_IN_INDIA_LOCAL_CONTENT
+Make in India declaration confirming indigenous content above specified threshold.,MAKE_IN_INDIA_LOCAL_CONTENT
+Local content certificate from cost auditor is mandatory for MII compliance.,MAKE_IN_INDIA_LOCAL_CONTENT
+The contractor must comply with the Public Procurement (Preference to Make in India) Order 2017.,MAKE_IN_INDIA_LOCAL_CONTENT
+Minimum 40 percent local manufacturing content as per DPIIT guidelines.,MAKE_IN_INDIA_LOCAL_CONTENT
+Self-declaration of local content and percentage of indigenous materials used.,MAKE_IN_INDIA_LOCAL_CONTENT
+Bidder shall submit MII certificate confirming compliance with local content norms.,MAKE_IN_INDIA_LOCAL_CONTENT
+Line pipe sourced from domestic manufacturers must meet minimum 60 percent local content.,MAKE_IN_INDIA_LOCAL_CONTENT
+Make in India preference applies to categories notified by the nodal ministry.,MAKE_IN_INDIA_LOCAL_CONTENT
+The awarded contractor must procure steel from domestic steel producers as per MSTC guidelines.,MAKE_IN_INDIA_LOCAL_CONTENT
+Submit local content self-declaration on company letterhead for each major supply item.,MAKE_IN_INDIA_LOCAL_CONTENT

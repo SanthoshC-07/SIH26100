@@ -9,8 +9,13 @@ class Token(BaseModel):
     user: "UserResponse"
 
 class LoginRequest(BaseModel):
-    username_or_email: str
+    username_or_email: Optional[str] = None
+    username: Optional[str] = None
     password: str
+
+    @property
+    def identifier(self) -> str:
+        return self.username_or_email or self.username or ""
 
 class UserCreate(BaseModel):
     name: str
@@ -30,14 +35,22 @@ class UserResponse(BaseModel):
     role: str
     department: Optional[str] = None
     is_active: bool
+    bidder_id: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    role: Optional[str] = None
+    department: Optional[str] = None
+    is_active: Optional[bool] = None
+    bidder_id: Optional[str] = None
 
 # ----------------- REQUIREMENT SCHEMAS -----------------
 class RequirementBase(BaseModel):
     category: str
     clause_number: Optional[str] = None
-    description: str
+    description: Optional[str] = ""
     threshold: Optional[float] = None
     threshold_unit: Optional[str] = None
     comparison_operator: Optional[str] = ">="
@@ -197,6 +210,11 @@ class DocumentResponse(BaseModel):
     page_count: int
     upload_timestamp: datetime
     entities_count: Optional[int] = 0
+    extraction_method: Optional[str] = "PYMUPDF"
+
+class DocumentDetailResponse(DocumentResponse):
+    extracted_text: Optional[str] = None
+    entities: List[ExtractedEntityResponse] = []
 
 # ----------------- COMPLIANCE & EVIDENCE SCHEMAS -----------------
 class EvidenceResponse(BaseModel):
@@ -221,6 +239,7 @@ class ComplianceCheckResponse(BaseModel):
     id: str
     bidder_id: str
     requirement_id: str
+    clause_number: Optional[str] = None
     requirement_category: Optional[str] = None
     requirement_description: Optional[str] = None
     requirement_mandatory: Optional[bool] = True
@@ -273,7 +292,9 @@ class RecommendationResponse(BaseModel):
     generated_at: datetime
 
 class OfficerReviewCreate(BaseModel):
+    bidder_id: Optional[str] = None
     requirement_id: Optional[str] = None
+    action_type: Optional[str] = "OFFICER_OVERRIDE"
     new_status: str
     remarks: str
 
@@ -290,6 +311,27 @@ class OfficerReviewResponse(BaseModel):
     action_type: str
     remarks: str
     reviewed_at: datetime
+
+# ----------------- PROCUREMENT OFFICER SELECTING AUTHORITY SCHEMAS -----------------
+class SelectingAuthorityRequest(BaseModel):
+    decision: str  # ELIGIBLE, INELIGIBLE, QUALIFIED, DISQUALIFIED, SHORTLISTED
+    remarks: str
+    statutory_rule: Optional[str] = "GFR 2017 Rule 173 / MoPNG Clause 4.2"
+    technical_score: Optional[float] = None
+    financial_cleared: Optional[bool] = True
+
+class SelectingAuthorityResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    bidder_id: str
+    bidder_name: str
+    decision: str
+    status: str
+    officer_id: str
+    officer_name: str
+    remarks: str
+    statutory_rule: Optional[str] = None
+    timestamp: datetime
 
 # ----------------- BID SCHEMAS -----------------
 class BidBase(BaseModel):
@@ -385,6 +427,21 @@ class BidderResponse(BidderBase):
     recommendation_type: Optional[str] = None
     documents_count: Optional[int] = 0
 
+class BidderUpdate(BaseModel):
+    legal_name: Optional[str] = None
+    trade_name: Optional[str] = None
+    registered_address: Optional[str] = None
+    contact_information: Optional[Dict[str, Any]] = None
+    bidder_type: Optional[str] = None
+    country: Optional[str] = None
+    oil_gas_experience_years: Optional[float] = None
+    pipeline_experience_years: Optional[float] = None
+    udyam_number: Optional[str] = None
+    cin: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    contact_person: Optional[str] = None
+
 class BidderDetailResponse(BidderResponse):
     model_config = ConfigDict(from_attributes=True)
 
@@ -442,5 +499,177 @@ class SettingsUpdate(BaseModel):
     confidence_high: float = 0.90
     confidence_medium: float = 0.70
 
+# ----------------- PHASE 2 NLP & EVIDENCE SCHEMAS -----------------
+class TenderClauseResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
 
+    id: str
+    tender_id: str
+    clause_number: Optional[str] = None
+    clause_type: str = "REQUIREMENT"
+    original_text: str
+    normalized_text: Optional[str] = None
+    page_number: int = 1
+    category: Optional[str] = None
+    confidence: float = 1.0
+    is_requirement: bool = True
+    extracted_entities: Dict[str, Any] = {}
+    created_at: datetime
+
+class EvidenceChunkResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    document_id: str
+    bidder_id: Optional[str] = None
+    requirement_id: Optional[str] = None
+    page_number: int = 1
+    chunk_index: int = 0
+    text: str
+    normalized_text: Optional[str] = None
+    category: Optional[str] = None
+    confidence: float = 1.0
+    similarity_score: float = 0.0
+    created_at: datetime
+
+class EvidenceSearchRequest(BaseModel):
+    requirement_id: Optional[str] = None
+    bidder_id: Optional[str] = None
+    query: str
+    top_k: int = 5
+    category: Optional[str] = None
+
+class EvidenceSearchResult(BaseModel):
+    document_id: str
+    document_name: str
+    page_number: int
+    text: str
+    normalized_text: Optional[str] = None
+    similarity_score: float
+    confidence: float
+    extraction_method: str = "PDF_TEXT"
+    extracted_entities: Dict[str, Any] = {}
+
+class StructuredRequirementConstraints(BaseModel):
+    category: str
+    mandatory: bool = True
+    threshold: Optional[float] = None
+    unit: Optional[str] = None
+    comparison: Optional[str] = ">="
+    lookback_years: Optional[float] = None
+    minimum_project_count: Optional[int] = 1
+    pipeline_type: Optional[str] = None
+    minimum_pipeline_length_km: Optional[float] = None
+    minimum_diameter_inch: Optional[float] = None
+    qualification: Optional[str] = None
+    minimum_personnel: Optional[int] = None
+    financial_year_count: Optional[int] = None
+    required_certifications: List[str] = []
+    completion_required: bool = True
+    confidence: float = 0.95
+
+# ----------------- PHASE 5 SCHEMAS -----------------
+class RiskFactorResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    risk_assessment_id: Optional[str] = None
+    bid_id: str
+    requirement_id: Optional[str] = None
+    compliance_check_id: Optional[str] = None
+    factor_type: str
+    severity: str
+    description: str
+    evidence_snippet: Optional[str] = None
+    source_document: Optional[str] = None
+    page_number: Optional[int] = None
+    created_at: datetime
+
+class RiskAssessmentDetailResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    bidder_id: str
+    risk_level: str
+    risk_score: float
+    primary_risk_factors: List[str] = []
+    factors: List[RiskFactorResponse] = []
+    assessed_at: Optional[datetime] = None
+
+class RequirementDecisionRequest(BaseModel):
+    decision: str  # ACCEPT_AI_RESULT, PASS, FAIL, REVIEW, INSUFFICIENT
+    reason: Optional[str] = ""  # Mandatory when overriding
+    officer_name: Optional[str] = None
+
+class RequirementDecisionResponse(BaseModel):
+    id: str
+    bid_id: str
+    requirement_id: Optional[str] = None
+    compliance_check_id: Optional[str] = None
+    decision_type: str
+    ai_status: str
+    ai_confidence: float
+    officer_status: str
+    officer_reason: str
+    is_override: bool
+    officer_id: Optional[str] = None
+    officer_name: str
+    decision_timestamp: datetime
+
+class FinalBidDecisionRequest(BaseModel):
+    decision: str  # QUALIFIED, DISQUALIFIED, REVIEW / HOLD
+    remarks: str
+    confirmed: bool = True
+    officer_name: Optional[str] = None
+
+class FinalBidDecisionResponse(BaseModel):
+    id: str
+    bid_id: str
+    tender_id: Optional[str] = None
+    decision: str
+    remarks: str
+    officer_id: Optional[str] = None
+    officer_name: str
+    timestamp: datetime
+    summary: Dict[str, Any] = {}
+
+class AuditEventResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    event_id: str
+    timestamp: datetime
+    user_id: Optional[str] = None
+    user_name: str
+    role: str
+    action: str
+    entity_type: str
+    entity_id: str
+    tender_id: Optional[str] = None
+    bidder_id: Optional[str] = None
+    description: str
+    metadata_payload: Optional[Dict[str, Any]] = None
+
+class ComplianceReportResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    bid_id: str
+    tender_id: Optional[str] = None
+    report_number: str
+    title: str
+    generated_by_name: str
+    assessment_date: datetime
+    compliance_score: float
+    risk_level: str
+    risk_score: float
+    ai_recommendation: str
+    final_officer_decision: Optional[str] = None
+    executive_summary: Dict[str, Any] = {}
+    requirement_summary: List[Dict[str, Any]] = []
+    detailed_findings: List[Dict[str, Any]] = []
+    officer_decisions: List[Dict[str, Any]] = []
+    risk_analysis: Dict[str, Any] = {}
+    audit_information: Dict[str, Any] = {}
+    pdf_path: Optional[str] = None
+    html_content: Optional[str] = None
+    created_at: datetime
 

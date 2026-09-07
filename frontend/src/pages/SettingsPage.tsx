@@ -1,207 +1,157 @@
 import React, { useState } from 'react';
 import {
   Settings,
-  User,
-  Sliders,
-  Bell,
-  KeyRound,
-  Building2,
+  ShieldCheck,
+  CheckCircle2,
   Save,
-  CheckCircle2
+  KeyRound,
+  Lock,
+  UserCheck,
+  Server,
+  Database,
+  Check
 } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'PROFILE' | 'ENGINE' | 'NOTIFICATIONS' | 'SECURITY' | 'ORG'>('PROFILE');
-  const [firstName, setFirstName] = useState('Alex');
-  const [lastName, setLastName] = useState('Rivera');
-  const [email, setEmail] = useState('a.rivera@procurement.gov');
-  const [phone, setPhone] = useState('+91 98765 43210');
-  const [saved, setSaved] = useState(false);
+  const [officerName, setOfficerName] = useState('Rajesh Sharma');
+  const [officerRole, setOfficerRole] = useState('Senior Procurement Officer');
+  const [officerDept, setOfficerDept] = useState('Pipeline Procurement & Technical Evaluation Directorate');
+  const [sessionTimeout, setSessionTimeout] = useState('30');
+  const [auditRetentionDays, setAuditRetentionDays] = useState('365');
+  const [savedSuccess, setSavedSuccess] = useState(false);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 3000);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 font-sans">
       
-      {/* 1. Header (Matching Page 12 from PDF) */}
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900">
-          System Settings
-        </h1>
-        <p className="text-xs text-slate-500">
-          Manage your personal profile, organization preferences, and AI compliance thresholds.
-        </p>
-      </div>
+      {/* Header Banner */}
+      <div className="bg-[#FFFFFF] border border-[#D9DEDA] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sharp">
+        <div>
+          <div className="text-[10px] font-mono font-semibold tracking-wider text-[#B08A3E] uppercase flex items-center gap-1.5">
+            <Settings className="w-3.5 h-3.5" />
+            SYSTEM PREFERENCES & SECURITY
+          </div>
+          <h1 className="text-xl font-bold tracking-tight text-[#17201C] mt-0.5">
+            Platform Settings & Officer Profile
+          </h1>
+          <p className="text-xs text-[#66736D]">
+            Manage procurement officer identity, security encryption parameters, and regulatory audit retention policies.
+          </p>
+        </div>
 
-      {/* 2. Settings Tabs Bar */}
-      <div className="flex flex-wrap items-center gap-2 bg-slate-100 p-1 rounded-xl text-xs font-semibold w-fit">
-        <button
-          onClick={() => setActiveTab('PROFILE')}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all ${
-            activeTab === 'PROFILE' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <User className="w-3.5 h-3.5" /> Profile
-        </button>
-        <button
-          onClick={() => setActiveTab('ENGINE')}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all ${
-            activeTab === 'ENGINE' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <Sliders className="w-3.5 h-3.5" /> Compliance Engine
-        </button>
-        <button
-          onClick={() => setActiveTab('NOTIFICATIONS')}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all ${
-            activeTab === 'NOTIFICATIONS' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <Bell className="w-3.5 h-3.5" /> Notifications
-        </button>
-        <button
-          onClick={() => setActiveTab('SECURITY')}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all ${
-            activeTab === 'SECURITY' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <KeyRound className="w-3.5 h-3.5" /> Security & API
-        </button>
-        <button
-          onClick={() => setActiveTab('ORG')}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all ${
-            activeTab === 'ORG' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <Building2 className="w-3.5 h-3.5" /> Organization
-        </button>
-      </div>
-
-      {/* 3. Main Settings Content Card (Matching Page 12 from PDF) */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-card p-6 sm:p-8 space-y-6">
-        
-        {activeTab === 'PROFILE' && (
-          <form onSubmit={handleSave} className="space-y-6">
-            
-            <div className="border-b border-slate-100 pb-4">
-              <h2 className="text-sm font-bold text-slate-900">Personal Information</h2>
-              <p className="text-xs text-slate-500">Update your photo and personal details for the audit trail.</p>
-            </div>
-
-            {/* Avatar Row */}
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-lg text-slate-700 font-mono shadow-inner">
-                AR
-              </div>
-              <div className="space-y-1">
-                <div className="font-bold text-xs text-slate-900">Alex Rivera</div>
-                <div className="text-[11px] text-slate-500">Chief Auditor, Department of Procurement</div>
-                <div className="flex items-center gap-3 pt-1">
-                  <button type="button" className="text-xs font-semibold text-blue-600 hover:underline">
-                    Update Avatar
-                  </button>
-                  <button type="button" className="text-xs text-rose-600 hover:underline">
-                    Remove
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Form Fields Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="space-y-1">
-                <label className="block font-bold text-slate-700">First Name</label>
-                <input
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block font-bold text-slate-700">Last Name</label>
-                <input
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block font-bold text-slate-700">Email Address</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white font-mono"
-                />
-                <span className="text-[10px] text-slate-400 block">Email changes require organizational approval.</span>
-              </div>
-
-              <div className="space-y-1">
-                <label className="block font-bold text-slate-700">Phone Number</label>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white font-mono"
-                />
-              </div>
-            </div>
-
-            {/* Save Buttons */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-              {saved && (
-                <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-4 h-4" /> Changes saved successfully
-                </span>
-              )}
-              <button
-                type="button"
-                className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50"
-              >
-                Discard Changes
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm"
-              >
-                <Save className="w-4 h-4" /> Save Changes
-              </button>
-            </div>
-
-          </form>
-        )}
-
-        {activeTab === 'ENGINE' && (
-          <div className="space-y-4 text-xs">
-            <h2 className="text-sm font-bold text-slate-900">7 Core Checkers Configuration</h2>
-            <div className="space-y-3">
-              <div className="p-3 border border-slate-200 rounded-lg flex items-center justify-between">
-                <div>
-                  <div className="font-bold">Turnover Deterministic Arithmetic</div>
-                  <div className="text-slate-500">Evaluates 3-year turnover threshold strictly via audited statements</div>
-                </div>
-                <span className="text-emerald-600 font-bold font-mono">ENABLED (100%)</span>
-              </div>
-              <div className="p-3 border border-slate-200 rounded-lg flex items-center justify-between">
-                <div>
-                  <div className="font-bold">Pipeline Diameter & Length Checker</div>
-                  <div className="text-slate-500">Verifies ≥ 100 km and ≥ 24 inch API 5L specifications</div>
-                </div>
-                <span className="text-emerald-600 font-bold font-mono">ENABLED (100%)</span>
-              </div>
-            </div>
+        {savedSuccess && (
+          <div className="px-3 py-1.5 bg-[#EAF5F0] border border-[#A8D9C5] text-[#237A57] font-mono text-xs font-bold flex items-center gap-1.5">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>PREFERENCES SAVED</span>
           </div>
         )}
-
       </div>
+
+      <form onSubmit={handleSave} className="space-y-5 font-mono text-xs">
+        
+        {/* Section 1: Officer Profile */}
+        <div className="bg-[#FFFFFF] border border-[#D9DEDA] p-5 shadow-sharp space-y-4">
+          <div className="border-b border-[#D9DEDA] pb-2 font-bold text-[#102A24] uppercase flex items-center gap-2">
+            <UserCheck className="w-4 h-4 text-[#B08A3E]" />
+            <span>1. Officer Profile & Statutory Identity</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold text-[#66736D] uppercase">
+                Officer Legal Name
+              </label>
+              <input
+                type="text"
+                value={officerName}
+                onChange={(e) => setOfficerName(e.target.value)}
+                className="w-full px-3 py-1.5 bg-[#F5F6F3] border border-[#D9DEDA] text-xs text-[#17201C] focus:bg-white focus:border-[#176B55] outline-none"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold text-[#66736D] uppercase">
+                Official Designation
+              </label>
+              <input
+                type="text"
+                value={officerRole}
+                onChange={(e) => setOfficerRole(e.target.value)}
+                className="w-full px-3 py-1.5 bg-[#F5F6F3] border border-[#D9DEDA] text-xs text-[#17201C] focus:bg-white focus:border-[#176B55] outline-none"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold text-[#66736D] uppercase">
+                Directorate / Ministry Unit
+              </label>
+              <input
+                type="text"
+                value={officerDept}
+                onChange={(e) => setOfficerDept(e.target.value)}
+                className="w-full px-3 py-1.5 bg-[#F5F6F3] border border-[#D9DEDA] text-xs text-[#17201C] focus:bg-white focus:border-[#176B55] outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 2: Security & Audit Retention */}
+        <div className="bg-[#FFFFFF] border border-[#D9DEDA] p-5 shadow-sharp space-y-4">
+          <div className="border-b border-[#D9DEDA] pb-2 font-bold text-[#102A24] uppercase flex items-center gap-2">
+            <Lock className="w-4 h-4 text-[#B08A3E]" />
+            <span>2. Session Security & GFR 2017 Audit Policies</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-3.5 bg-[#F5F6F3] border border-[#D9DEDA] space-y-1.5">
+              <label className="block text-[10px] font-bold text-[#17201C] uppercase">
+                Session Idle Timeout (Minutes)
+              </label>
+              <input
+                type="number"
+                value={sessionTimeout}
+                onChange={(e) => setSessionTimeout(e.target.value)}
+                className="w-full px-3 py-1.5 bg-white border border-[#D9DEDA] text-xs text-[#17201C] focus:border-[#176B55] outline-none"
+              />
+              <p className="text-[10px] text-[#66736D]">
+                Automatically locks procurement verification workspace after inactivity.
+              </p>
+            </div>
+
+            <div className="p-3.5 bg-[#F5F6F3] border border-[#D9DEDA] space-y-1.5">
+              <label className="block text-[10px] font-bold text-[#17201C] uppercase">
+                GFR 2017 Audit Log Retention (Days)
+              </label>
+              <input
+                type="number"
+                value={auditRetentionDays}
+                onChange={(e) => setAuditRetentionDays(e.target.value)}
+                className="w-full px-3 py-1.5 bg-white border border-[#D9DEDA] text-xs text-[#17201C] focus:border-[#176B55] outline-none"
+              />
+              <p className="text-[10px] text-[#66736D]">
+                Immutable cryptographic ledger retention window for statutory audits.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            className="px-5 py-2.5 bg-[#102A24] hover:bg-[#1E5A47] text-white font-bold flex items-center gap-2 transition-colors border border-[#176B55]"
+          >
+            <Save className="w-4 h-4 text-[#B08A3E]" />
+            <span>SAVE PLATFORM PREFERENCES</span>
+          </button>
+        </div>
+
+      </form>
 
     </div>
   );

@@ -1,33 +1,41 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { Topbar } from '../components/Topbar';
 
 export const MainLayout: React.FC = () => {
+  const location = useLocation();
+
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
-      {/* Dark Navy Sidebar */}
+    <div className="flex min-h-screen bg-[#F4F5F7] text-[#17212B] font-sans">
+      {/* Institutional Sidebar */}
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Topbar />
         
-        <main className="flex-1 p-6 sm:p-8 max-w-[1600px] w-full mx-auto">
+        <main
+          key={location.pathname}
+          className="flex-1 p-6 sm:p-8 w-full max-w-[1600px] mx-auto page-enter overflow-y-auto"
+        >
           <Outlet />
         </main>
 
-        {/* Global Institutional Footer */}
-        <footer className="border-t border-slate-200 bg-white py-3.5 px-8 text-[11px] font-mono text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+        {/* Global Footer (matching PDF clean institutional note) */}
+        <footer className="border-t border-[#D9DEE3] bg-[#FFFFFF] py-2.5 px-8 text-xs font-sans text-[#66717C] flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
           <div className="flex items-center gap-2">
-            <span>© 2026 BidVerify AI • MoPNG Pipeline Procurement Platform</span>
-            <span className="hidden md:inline">•</span>
-            <span className="hidden md:inline text-slate-400">GovProcure Professional Suite v2.4.0</span>
+            <span className="font-serif font-bold text-[#10283A]">PetroBid</span>
+            <span>•</span>
+            <span>Ministry of Petroleum &amp; Natural Gas — Pipeline Procurement Compliance System</span>
           </div>
-          <div className="flex items-center gap-4 text-slate-500">
-            <span className="hover:text-slate-800 cursor-pointer">System Logs</span>
-            <span className="hover:text-slate-800 cursor-pointer">Audit Policy</span>
-            <span className="hover:text-slate-800 cursor-pointer">Support</span>
+          <div className="flex items-center gap-3 text-[#66717C]">
+            <span>Activity is logged for audit trail</span>
+            <span>•</span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#198754] inline-block" />
+              GFR 2017 Validated
+            </span>
           </div>
         </footer>
       </div>

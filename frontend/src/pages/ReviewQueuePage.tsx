@@ -1,348 +1,501 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ShieldCheck,
-  Clock,
+  ListFilter,
   AlertTriangle,
   CheckCircle2,
-  Filter,
-  Download,
+  XCircle,
+  Clock,
   Search,
-  Sliders,
-  UserCheck,
+  RefreshCw,
   ExternalLink,
-  Layers
+  ShieldCheck,
+  UserCheck,
+  Check,
+  ChevronRight,
+  Plus,
+  ArrowRight
 } from 'lucide-react';
+import { bidderService } from '../services';
+import { Bidder, ComplianceCheck } from '../types';
+import { OfficerReviewModal } from '../components/OfficerReviewModal';
 
 export const ReviewQueuePage: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'ALL' | 'HIGH' | 'MY_QUEUE' | 'FLAGGED'>('ALL');
+  const [bidders, setBidders] = useState<Bidder[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [selectedCheckForReview, setSelectedCheckForReview] = useState<ComplianceCheck | null>(null);
+  const [selectedBidderName, setSelectedBidderName] = useState('');
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [logSuccessMessage, setLogSuccessMessage] = useState('');
 
-  const mockWorklist = [
+  const loadData = () => {
+    setLoading(true);
+    bidderService.getBidders()
+      .then((b) => setBidders(b))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const indusBidder = bidders.find(b => b.legal_name.toLowerCase().includes('indus'));
+  const bharatBidder = bidders.find(b => b.legal_name.toLowerCase().includes('bharat'));
+  const praveenBidder = bidders.find(b => b.legal_name.toLowerCase().includes('praveen'));
+
+  // Items structured exactly per PDF Page 6 Recent Complaints + SIH compliance review items
+  const complaintsList = [
     {
-      id: 'VER-9821',
-      bidder: 'Praveen B S Engineering Services',
-      project: 'GAIL 120 KM Pipeline EPC Package',
-      urgency: 'high',
-      score: 94,
-      status: 'PENDING',
-      auditor: 'Unassigned',
-      bidderId: '1'
+      id: 'CPL-0341',
+      bidder: 'Nova Petrochem Co.',
+      bidderId: bharatBidder?.id || 'b-nova',
+      category: 'Bid Document Disputes',
+      status: 'Resolved',
+      filed: '02 Sep 2026',
+      requirement: 'REQ-007 — HSE / SAFETY',
+      issue: 'Dispute regarding provisional ISO 45001 certificate; verified with accredited registry.',
+      confidence: 92,
+      assignedOfficer: 'Alex Rivera'
     },
     {
-      id: 'VER-9822',
-      bidder: 'Larsen & Toubro Hydrocarbon',
-      project: 'IOCL Crude Pipeline Spooling',
-      urgency: 'medium',
-      score: 78,
-      status: 'IN REVIEW',
-      auditor: 'Marcus Thorne',
-      bidderId: '2'
+      id: 'CPL-0340',
+      bidder: 'Summit Pipeline Inc.',
+      bidderId: indusBidder?.id || 'b-summit',
+      category: 'Payment Delays',
+      status: 'In Progress',
+      filed: '03 Sep 2026',
+      requirement: 'REQ-006 — SOLVENCY & EMD',
+      issue: 'Bank guarantee e-PBG confirmation pending from State Bank of India treasury branch.',
+      confidence: 78,
+      assignedOfficer: 'Alex Rivera'
     },
     {
-      id: 'VER-9823',
-      bidder: 'Indus Pipeline Infra Corp',
-      project: 'ONGC Offshore Gas Feed',
-      urgency: 'high',
-      score: 89,
-      status: 'FLAGGED',
-      auditor: 'Sarah Jenkins',
-      bidderId: '3'
+      id: 'CPL-0338',
+      bidder: 'Delta Refining Group',
+      bidderId: indusBidder?.id || 'b-delta',
+      category: 'Verification Errors',
+      status: 'Escalated',
+      filed: '01 Sep 2026',
+      requirement: 'REQ-004 — SIMILAR PIPELINE EXPERIENCE',
+      issue: 'Pipeline length shortfall: 60 KM submitted vs 100 KM mandatory threshold; escalated to CPO.',
+      confidence: 96,
+      assignedOfficer: 'Alex Rivera'
     },
     {
-      id: 'VER-9824',
-      bidder: 'PetroCon Energy Limited',
-      project: 'GAIL Compressor Station 04',
-      urgency: 'low',
-      score: 42,
-      status: 'PENDING',
-      auditor: 'Unassigned',
-      bidderId: '4'
+      id: 'CPL-0335',
+      bidder: 'Horizon Oilfield Svcs.',
+      bidderId: bharatBidder?.id || 'b-horizon',
+      category: 'Other',
+      status: 'In Progress',
+      filed: '29 Aug 2026',
+      requirement: 'REQ-001 — STATUTORY GSTIN',
+      issue: 'GST legal entity name spelling variance between PAN database and GeM registration.',
+      confidence: 84,
+      assignedOfficer: 'Alex Rivera'
     },
     {
-      id: 'VER-9825',
-      bidder: 'Vanguard Hydrocarbon Engineering',
-      project: 'Assam Gas Grid Extension',
-      urgency: 'medium',
-      score: 65,
-      status: 'VERIFIED',
-      auditor: 'Alex Rivera',
-      bidderId: '5'
+      id: 'CPL-0329',
+      bidder: 'Indus Pipeline Infrastructure',
+      bidderId: indusBidder?.id || 'b-indus',
+      category: 'Bid Document Disputes',
+      status: 'Escalated',
+      filed: '28 Aug 2026',
+      requirement: 'REQ-003 — FINANCIAL TURNOVER',
+      issue: 'Turnover shortfall: 3-year average ₹18.00 Cr vs ₹25.00 Cr mandatory qualification threshold.',
+      confidence: 95,
+      assignedOfficer: 'Alex Rivera'
     }
   ];
 
-  const filteredWorklist = mockWorklist.filter(item => {
-    if (activeTab === 'HIGH' && item.urgency !== 'high') return false;
-    if (activeTab === 'FLAGGED' && item.status !== 'FLAGGED') return false;
-    if (activeTab === 'MY_QUEUE' && item.auditor !== 'Alex Rivera') return false;
-    return item.bidder.toLowerCase().includes(searchQuery.toLowerCase()) || item.id.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredComplaints = complaintsList.filter(item => {
+    const matchSearch = item.bidder.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.issue.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchCategory = selectedCategory === 'ALL' || item.category === selectedCategory;
+    return matchSearch && matchCategory;
   });
 
+  const handleOpenReview = (item: any) => {
+    setSelectedBidderName(item.bidder);
+    setSelectedCheckForReview({
+      id: item.id,
+      bidder_id: item.bidderId || '',
+      requirement_id: item.requirement,
+      requirement_category: item.category,
+      requirement_description: item.issue,
+      requirement_mandatory: true,
+      status: item.status === 'Resolved' ? 'PASS' : item.status === 'Escalated' ? 'FAIL' : 'REVIEW',
+      confidence: item.confidence / 100,
+      reason: item.issue,
+      evidence_text: item.issue,
+      document_name: 'Complaint_Dossier_' + item.id + '.pdf',
+      page_number: 1,
+      rule_version: '3.0.0',
+      verified_at: new Date().toISOString()
+    });
+  };
+
+  const getStatusPill = (status: string) => {
+    if (status === 'Resolved') {
+      return (
+        <span className="inline-block px-3.5 py-1 text-[11px] font-semibold text-white bg-[#198754] rounded-md tracking-tight">
+          Resolved
+        </span>
+      );
+    }
+    if (status === 'In Progress') {
+      return (
+        <span className="inline-block px-3.5 py-1 text-[11px] font-semibold text-white bg-[#D98A16] rounded-md tracking-tight">
+          In Progress
+        </span>
+      );
+    }
+    return (
+      <span className="inline-block px-3.5 py-1 text-[11px] font-semibold text-white bg-[#C83B32] rounded-md tracking-tight">
+        Escalated
+      </span>
+    );
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       
-      {/* 1. Header & Actions (Matching Page 6 from PDF) */}
+      {/* ── Top Header Section (from PDF Page 6) ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">
-            Verification Worklist
+          <div className="text-[11px] font-mono tracking-widest text-[#66717C] uppercase font-bold">
+            COMPLAINT RECEIVER
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#10283A] tracking-tight mt-0.5">
+            Complaint Receiver
           </h1>
-          <p className="text-xs text-slate-500">
-            Manage and triage pending bid compliance audits and document integrity checks.
-          </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <button className="px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs">
-            <Download className="w-3.5 h-3.5 text-slate-500" /> Export CSV
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowLogModal(true)}
+            className="px-5 py-2.5 bg-[#10283A] hover:bg-[#18374D] text-white text-xs font-semibold rounded-md transition-colors shadow-sm inline-flex items-center gap-1.5"
+            title="Log New Complaint"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>+ Log Complaint</span>
           </button>
-          <button className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm">
-            <ShieldCheck className="w-4 h-4" /> Bulk Verify
+
+          <button
+            onClick={loadData}
+            title="Refresh Queue"
+            className="p-2.5 bg-[#FFFFFF] hover:bg-[#F4F5F7] border border-[#D9DEE3] text-[#66717C] hover:text-[#10283A] rounded-md transition-colors shadow-sm"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
-      {/* 2. Top 4 Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 shadow-card p-4 space-y-1.5">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
-            <span>Awaiting Review</span>
-            <Clock className="w-4 h-4 text-slate-400" />
+      {logSuccessMessage && (
+        <div className="p-3.5 bg-[#EAF5F0] border border-[#A8D9C5] text-[#198754] text-xs font-semibold rounded-md flex items-center gap-2">
+          <Check className="w-4 h-4" />
+          <span>{logSuccessMessage}</span>
+        </div>
+      )}
+
+      {/* ── Top Two Cards Side-by-Side (from PDF Page 6) ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {/* Left Card: Resolution Progress */}
+        <div className="bg-[#FFFFFF] border border-[#D9DEE3] rounded-md p-6 shadow-sm space-y-4">
+          <h2 className="text-base font-serif font-bold text-[#10283A]">
+            Resolution Progress
+          </h2>
+
+          <div className="space-y-3.5 text-xs">
+            {/* Resolved 72% (green) */}
+            <div>
+              <div className="flex justify-between font-semibold text-[#17212B] mb-1.5">
+                <span>Resolved</span>
+                <span className="font-mono font-bold text-[#198754]">72%</span>
+              </div>
+              <div className="w-full bg-[#F4F5F7] h-2.5 rounded-full overflow-hidden">
+                <div className="bg-[#198754] h-full rounded-full" style={{ width: '72%' }} />
+              </div>
+            </div>
+
+            {/* In Progress 18% (amber) */}
+            <div>
+              <div className="flex justify-between font-semibold text-[#17212B] mb-1.5">
+                <span>In Progress</span>
+                <span className="font-mono font-bold text-[#D98A16]">18%</span>
+              </div>
+              <div className="w-full bg-[#F4F5F7] h-2.5 rounded-full overflow-hidden">
+                <div className="bg-[#D98A16] h-full rounded-full" style={{ width: '18%' }} />
+              </div>
+            </div>
+
+            {/* Escalated 10% (red) */}
+            <div>
+              <div className="flex justify-between font-semibold text-[#17212B] mb-1.5">
+                <span>Escalated</span>
+                <span className="font-mono font-bold text-[#C83B32]">10%</span>
+              </div>
+              <div className="w-full bg-[#F4F5F7] h-2.5 rounded-full overflow-hidden">
+                <div className="bg-[#C83B32] h-full rounded-full" style={{ width: '10%' }} />
+              </div>
+            </div>
+
+            {/* Overall SLA Compliance 88% (navy) */}
+            <div className="pt-2 border-t border-[#D9DEE3]">
+              <div className="flex justify-between font-semibold text-[#17212B] mb-1.5">
+                <span>Overall SLA Compliance</span>
+                <span className="font-mono font-bold text-[#10283A]">88%</span>
+              </div>
+              <div className="w-full bg-[#F4F5F7] h-2.5 rounded-full overflow-hidden">
+                <div className="bg-[#10283A] h-full rounded-full" style={{ width: '88%' }} />
+              </div>
+            </div>
           </div>
-          <div className="text-2xl font-extrabold text-slate-900">24</div>
-          <div className="text-[11px] text-emerald-600 font-medium">+12% today • 8 high priority</div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-card p-4 space-y-1.5">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
-            <span>Active Audits</span>
-            <UserCheck className="w-4 h-4 text-blue-500" />
+        {/* Right Card: Complaints by Category */}
+        <div className="bg-[#FFFFFF] border border-[#D9DEE3] rounded-md p-6 shadow-sm space-y-4">
+          <h2 className="text-base font-serif font-bold text-[#10283A]">
+            Complaints by Category
+          </h2>
+
+          <div className="space-y-3.5 text-xs">
+            {/* Bid Document Disputes 45% */}
+            <div>
+              <div className="flex justify-between font-semibold text-[#17212B] mb-1.5">
+                <span>Bid Document Disputes</span>
+                <span className="font-mono font-bold text-[#10283A]">45%</span>
+              </div>
+              <div className="w-full bg-[#F4F5F7] h-2.5 rounded-full overflow-hidden">
+                <div className="bg-[#10283A] h-full rounded-full" style={{ width: '45%' }} />
+              </div>
+            </div>
+
+            {/* Payment Delays 30% */}
+            <div>
+              <div className="flex justify-between font-semibold text-[#17212B] mb-1.5">
+                <span>Payment Delays</span>
+                <span className="font-mono font-bold text-[#10283A]">30%</span>
+              </div>
+              <div className="w-full bg-[#F4F5F7] h-2.5 rounded-full overflow-hidden">
+                <div className="bg-[#10283A] h-full rounded-full" style={{ width: '30%' }} />
+              </div>
+            </div>
+
+            {/* Verification Errors 15% */}
+            <div>
+              <div className="flex justify-between font-semibold text-[#17212B] mb-1.5">
+                <span>Verification Errors</span>
+                <span className="font-mono font-bold text-[#10283A]">15%</span>
+              </div>
+              <div className="w-full bg-[#F4F5F7] h-2.5 rounded-full overflow-hidden">
+                <div className="bg-[#10283A] h-full rounded-full" style={{ width: '15%' }} />
+              </div>
+            </div>
+
+            {/* Other 10% */}
+            <div>
+              <div className="flex justify-between font-semibold text-[#17212B] mb-1.5">
+                <span>Other</span>
+                <span className="font-mono font-bold text-[#10283A]">10%</span>
+              </div>
+              <div className="w-full bg-[#F4F5F7] h-2.5 rounded-full overflow-hidden">
+                <div className="bg-[#10283A] h-full rounded-full" style={{ width: '10%' }} />
+              </div>
+            </div>
           </div>
-          <div className="text-2xl font-extrabold text-slate-900">15</div>
-          <div className="text-[11px] text-slate-500 font-mono">Assigned to 6 auditors</div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-card p-4 space-y-1.5">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
-            <span>Flagged Issues</span>
-            <AlertTriangle className="w-4 h-4 text-rose-500" />
-          </div>
-          <div className="text-2xl font-extrabold text-slate-900">03</div>
-          <div className="text-[11px] text-rose-600 font-medium">Requires escalation</div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-200 shadow-card p-4 space-y-1.5">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
-            <span>Daily Completion</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-          </div>
-          <div className="text-2xl font-extrabold text-slate-900">92%</div>
-          <div className="text-[11px] text-slate-500 font-mono">Avg. 4.2h resolution</div>
-        </div>
       </div>
 
-      {/* 3. Tab Filter Bar & Search */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
-        {/* Tabs */}
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg">
-          <button
-            onClick={() => setActiveTab('ALL')}
-            className={`px-3 py-1.5 rounded-md font-semibold transition-all ${
-              activeTab === 'ALL' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            All Requests (42)
-          </button>
-          <button
-            onClick={() => setActiveTab('HIGH')}
-            className={`px-3 py-1.5 rounded-md font-semibold transition-all ${
-              activeTab === 'HIGH' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            High Priority (8)
-          </button>
-          <button
-            onClick={() => setActiveTab('MY_QUEUE')}
-            className={`px-3 py-1.5 rounded-md font-semibold transition-all ${
-              activeTab === 'MY_QUEUE' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            My Queue (5)
-          </button>
-          <button
-            onClick={() => setActiveTab('FLAGGED')}
-            className={`px-3 py-1.5 rounded-md font-semibold transition-all ${
-              activeTab === 'FLAGGED' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Flagged (3)
-          </button>
-        </div>
-
-        {/* Search */}
-        <div className="relative w-full sm:w-64">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+      {/* ── Search & Filter Ribbon ── */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-md border border-[#D9DEE3] shadow-sm">
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-3.5 h-3.5 text-[#66717C] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Filter by company or ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:bg-white"
+            placeholder="Search complaint ID, bidder, issue, category..."
+            className="w-full pl-8 pr-3 py-1.5 bg-[#FFFFFF] border border-[#D9DEE3] text-xs text-[#17212B] placeholder-[#8C9BA5] rounded focus:outline-none focus:border-[#10283A] transition-colors"
           />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold text-[#66717C] uppercase tracking-wide">
+            Category:
+          </span>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-3 py-1.5 bg-[#FFFFFF] border border-[#D9DEE3] text-xs text-[#17212B] rounded focus:outline-none focus:border-[#10283A]"
+          >
+            <option value="ALL">All Categories</option>
+            <option value="Bid Document Disputes">Bid Document Disputes</option>
+            <option value="Payment Delays">Payment Delays</option>
+            <option value="Verification Errors">Verification Errors</option>
+            <option value="Other">Other</option>
+          </select>
         </div>
       </div>
 
-      {/* 4. Verification Table (Matching Page 6 from PDF) */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-card overflow-hidden">
+      {/* ── Recent Complaints Card (from PDF Page 6) ── */}
+      <div className="bg-[#FFFFFF] border border-[#D9DEE3] rounded-md shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#D9DEE3] flex items-center justify-between">
+          <h2 className="text-base font-serif font-bold text-[#10283A]">
+            Recent Complaints
+          </h2>
+          <span className="text-xs text-[#66717C]">
+            Showing {filteredComplaints.length} records
+          </span>
+        </div>
+
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px] tracking-wider">
-              <tr>
-                <th className="py-3 px-5">Verification ID</th>
-                <th className="py-3 px-5">Bidder / Project</th>
-                <th className="py-3 px-5 text-center">Urgency</th>
-                <th className="py-3 px-5 text-center">Priority Score</th>
-                <th className="py-3 px-5 text-center">Status</th>
-                <th className="py-3 px-5">Auditor</th>
-                <th className="py-3 px-5 text-right">Actions</th>
+          <table className="w-full text-left text-xs border-collapse font-sans">
+            <thead>
+              <tr className="border-b border-[#D9DEE3] bg-[#F9FAFB]/60 text-[11px] font-semibold text-[#66717C] uppercase tracking-wider font-mono">
+                <th className="py-3 px-6">Complaint ID</th>
+                <th className="py-3 px-6">Bidder</th>
+                <th className="py-3 px-6">Category</th>
+                <th className="py-3 px-6">Status</th>
+                <th className="py-3 px-6">Filed</th>
+                <th className="py-3 px-6 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 text-slate-700">
-              {filteredWorklist.map((item) => {
-                const urgencyColor = item.urgency === 'high' ? 'bg-rose-50 text-rose-700 border-rose-200' : item.urgency === 'medium' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                
-                return (
-                  <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-3.5 px-5 font-mono text-[11px] font-bold text-slate-900">
-                      {item.id}
-                    </td>
-                    <td className="py-3.5 px-5">
-                      <div className="font-bold text-slate-900">{item.bidder}</div>
-                      <div className="text-[10px] text-slate-500">{item.project}</div>
-                    </td>
-                    <td className="py-3.5 px-5 text-center">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border capitalize ${urgencyColor}`}>
-                        ● {item.urgency}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-5 text-center font-mono font-bold text-slate-800">
-                      {item.score}%
-                    </td>
-                    <td className="py-3.5 px-5 text-center">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-5 text-slate-600 font-medium">
-                      {item.auditor}
-                    </td>
-                    <td className="py-3.5 px-5 text-right">
-                      <button
-                        onClick={() => navigate(`/bidders/${item.bidderId}`)}
-                        className="px-3 py-1 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 rounded-lg text-xs font-semibold transition-all shadow-2xs"
-                      >
-                        Review Audit
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+            <tbody className="divide-y divide-[#D9DEE3]/70 font-sans">
+              {filteredComplaints.map((c) => (
+                <tr
+                  key={c.id}
+                  onClick={() => handleOpenReview(c)}
+                  className="hover:bg-[#F9FAFB] cursor-pointer transition-colors"
+                >
+                  <td className="py-3.5 px-6 font-mono font-bold text-[#10283A]">
+                    {c.id}
+                  </td>
+                  <td className="py-3.5 px-6 font-semibold text-[#17212B]">
+                    <div>{c.bidder}</div>
+                    <div className="text-[10px] text-[#66717C] font-normal truncate max-w-sm mt-0.5">
+                      {c.issue}
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-6 text-[#17212B]">
+                    {c.category}
+                  </td>
+                  <td className="py-3.5 px-6">
+                    {getStatusPill(c.status)}
+                  </td>
+                  <td className="py-3.5 px-6 font-mono text-[#66717C]">
+                    {c.filed}
+                  </td>
+                  <td className="py-3.5 px-6 text-right">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenReview(c);
+                      }}
+                      className="px-3 py-1 bg-[#10283A] hover:bg-[#18374D] text-white text-[11px] font-semibold rounded transition-colors shadow-sm"
+                    >
+                      Review
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* 5. Bottom Two Cards: Recent Auditor Activity & Compliance Thresholds (Matching Page 6) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Recent Auditor Activity */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-card p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-900">Recent Auditor Activity</h2>
-            <button onClick={() => navigate('/audit')} className="text-xs text-blue-600 font-semibold hover:underline">
-              View Audit Trail
-            </button>
-          </div>
+      {/* ── Officer Review Modal (GFR 2017 Decision Workspace) ── */}
+      {selectedCheckForReview && (
+        <OfficerReviewModal
+          check={selectedCheckForReview}
+          bidderName={selectedBidderName}
+          onClose={() => setSelectedCheckForReview(null)}
+          onSuccess={() => {
+            setSelectedCheckForReview(null);
+            loadData();
+          }}
+        />
+      )}
 
-          <div className="space-y-3.5 text-xs">
-            <div className="flex items-start justify-between border-b border-slate-100 pb-2.5">
-              <div className="space-y-0.5">
-                <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  Document Verified: GST & Financial Statements
-                </div>
-                <div className="text-[10px] text-slate-500">Praveen B S Engineering Services</div>
-              </div>
-              <div className="text-right">
-                <div className="font-semibold text-slate-700">Alex Rivera</div>
-                <div className="text-[10px] text-slate-400 font-mono">12 mins ago</div>
-              </div>
-            </div>
-
-            <div className="flex items-start justify-between border-b border-slate-100 pb-2.5">
-              <div className="space-y-0.5">
-                <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                  Flag Raised: OEM Authorization Expiry Date Check
-                </div>
-                <div className="text-[10px] text-slate-500">Indus Pipeline Corp</div>
-              </div>
-              <div className="text-right">
-                <div className="font-semibold text-slate-700">Sarah Jenkins</div>
-                <div className="text-[10px] text-slate-400 font-mono">45 mins ago</div>
-              </div>
-            </div>
-
-            <div className="flex items-start justify-between">
-              <div className="space-y-0.5">
-                <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                  Worklist Assigned: 5 new submissions queued
-                </div>
-                <div className="text-[10px] text-slate-500">System AI Ingestion</div>
-              </div>
-              <div className="text-right">
-                <div className="font-semibold text-slate-700">System AI</div>
-                <div className="text-[10px] text-slate-400 font-mono">2 hours ago</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Compliance Thresholds Card */}
-        <div className="bg-[#0B132B] text-white rounded-xl p-6 shadow-md flex flex-col justify-between space-y-4">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-blue-400 font-bold text-sm">
-              <Sliders className="w-5 h-5" />
-              <span>Compliance Thresholds</span>
-            </div>
-            <p className="text-xs text-slate-300">
-              System-wide AI audit settings & sensitivity levels for pipeline compliance checks.
+      {/* ── Log Complaint Modal ── */}
+      {showLogModal && (
+        <div className="fixed inset-0 bg-[#10283A]/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-[#D9DEE3] rounded-md shadow-lg max-w-lg w-full p-6 space-y-4 font-sans">
+            <h3 className="text-base font-serif font-bold text-[#10283A]">
+              Log New Procurement Complaint
+            </h3>
+            <p className="text-xs text-[#66717C]">
+              File an official bidder complaint or technical specification grievance for review.
             </p>
 
-            <div className="space-y-2 pt-2 text-xs">
-              <div className="flex items-center justify-between p-2.5 bg-slate-900/60 rounded-lg border border-slate-800">
-                <span className="text-slate-300 font-medium">Auto-Flag Sensitivity</span>
-                <span className="font-bold text-blue-400 font-mono">85%</span>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setShowLogModal(false);
+                setLogSuccessMessage('Complaint registered successfully and assigned to Officer Alex Rivera.');
+                setTimeout(() => setLogSuccessMessage(''), 4000);
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div>
+                <label className="font-semibold text-[#17212B] block mb-1">Bidder / Contractor Entity</label>
+                <input
+                  type="text"
+                  defaultValue="Nova Petrochem Co."
+                  required
+                  className="w-full px-3 py-2 bg-white border border-[#D9DEE3] rounded focus:outline-none focus:border-[#10283A]"
+                />
               </div>
-              <div className="flex items-center justify-between p-2.5 bg-slate-900/60 rounded-lg border border-slate-800">
-                <span className="text-slate-300 font-medium">Integrity Depth Check</span>
-                <span className="font-bold text-emerald-400 font-mono">High (OCR + Rules)</span>
+
+              <div>
+                <label className="font-semibold text-[#17212B] block mb-1">Grievance Category</label>
+                <select className="w-full px-3 py-2 bg-white border border-[#D9DEE3] rounded focus:outline-none focus:border-[#10283A]">
+                  <option>Bid Document Disputes</option>
+                  <option>Payment Delays</option>
+                  <option>Verification Errors</option>
+                  <option>Other</option>
+                </select>
               </div>
-            </div>
+
+              <div>
+                <label className="font-semibold text-[#17212B] block mb-1">Detailed Description of Issue</label>
+                <textarea
+                  rows={3}
+                  placeholder="State specific tender clause number, discrepancy details, and impact..."
+                  required
+                  className="w-full px-3 py-2 bg-white border border-[#D9DEE3] rounded focus:outline-none focus:border-[#10283A]"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowLogModal(false)}
+                  className="px-4 py-2 border border-[#D9DEE3] text-[#66717C] hover:text-[#17212B] rounded text-xs font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#10283A] text-white hover:bg-[#18374D] rounded text-xs font-semibold shadow-sm"
+                >
+                  Submit Complaint
+                </button>
+              </div>
+            </form>
           </div>
-
-          <button
-            onClick={() => navigate('/settings')}
-            className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all"
-          >
-            Modify Settings →
-          </button>
         </div>
-
-      </div>
+      )}
 
     </div>
   );
 };
+
+export default ReviewQueuePage;

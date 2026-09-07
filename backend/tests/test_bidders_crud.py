@@ -4,17 +4,62 @@ import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 from app.core.database import Base, engine, SessionLocal
-from app.models.models import Tender, Bidder, Document
+from app.models.models import Tender, Bidder, Document, User
+from app.api.deps import get_current_user, get_current_admin, get_current_officer, get_current_bidder
 
 client = TestClient(app)
+
+from fastapi import Depends
+from sqlalchemy.orm import Session
+from app.core.database import get_db
 
 @pytest.fixture(autouse=True)
 def setup_db():
     Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    bidder_user = db.query(User).filter(User.username == "bidder_test_crud").first()
+    if not bidder_user:
+        bidder_user = User(
+            id="bidder-test-crud-id",
+            name="Bidder User",
+            username="bidder_test_crud",
+            email="bidder_test_crud@gem.gov.in",
+            password_hash="dummy_hash_for_test",
+            role="BIDDER",
+            is_active=True
+        )
+        db.add(bidder_user)
+        db.commit()
+
+    officer_user = db.query(User).filter(User.username == "officer_test").first()
+    if not officer_user:
+        officer_user = User(
+            id="officer-test-id",
+            name="Officer User",
+            username="officer_test",
+            email="officer_test@gem.gov.in",
+            password_hash="dummy_hash_for_test",
+            role="PROCUREMENT_OFFICER",
+            is_active=True
+        )
+        db.add(officer_user)
+        db.commit()
+    db.close()
+
+    def get_test_bidder(db: Session = Depends(get_db)):
+        return db.query(User).filter(User.username == "bidder_test_crud").first()
+
+    app.dependency_overrides[get_current_user] = get_test_bidder
+    app.dependency_overrides[get_current_bidder] = get_test_bidder
     yield
+    app.dependency_overrides.clear()
 
 def create_test_tender():
     t_num = f"MOPNG/2026/TEST/{uuid.uuid4().hex[:10]}"
+    def get_test_officer(db: Session = Depends(get_db)):
+        return db.query(User).filter(User.username == "officer_test").first()
+    
+    app.dependency_overrides[get_current_user] = get_test_officer
     res = client.post("/api/tenders", json={
         "tender_number": t_num,
         "title": "120 km Natural Gas Transmission Pipeline Tender",
@@ -22,6 +67,12 @@ def create_test_tender():
         "estimated_value": 1500000000.0,
         "status": "ACTIVE"
     })
+    
+    def get_test_bidder(db: Session = Depends(get_db)):
+        return db.query(User).filter(User.username == "bidder_test_crud").first()
+    app.dependency_overrides[get_current_user] = get_test_bidder
+    app.dependency_overrides[get_current_bidder] = get_test_bidder
+
     assert res.status_code == 201
     return res.json()["id"]
 

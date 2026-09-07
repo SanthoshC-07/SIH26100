@@ -1,62 +1,458 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --petro-navy: #10283A;
+    --petro-forest: #10283A;
+    --petro-green: #123C35;
+    --petro-amber: #D98A16;
+    --petro-orange: #E39A22;
+    --petro-bg: #F4F5F7;
+    --petro-surface: #FFFFFF;
+    --petro-text-primary: #17212B;
+    --petro-text-secondary: #66717C;
+    --petro-border: #D9DEE3;
+    --status-pass: #198754;
+    --status-review: #D98A16;
+    --status-fail: #C83B32;
+    --status-open: #10283A;
+    --status-paused: #8C9BA5;
+  }
+
   body {
-    @apply bg-[#F8FAFC] text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white;
+    background-color: #F4F5F7;
+    color: #17212B;
+    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, .font-serif {
+    font-family: 'Newsreader', Georgia, Cambria, 'Times New Roman', Times, serif;
+    letter-spacing: -0.01em;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  input:focus-visible, select:focus-visible, button:focus-visible, textarea:focus-visible {
+    outline: 2px solid #10283A;
+    outline-offset: 1px;
   }
 }
 
-/* Custom sleek scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ─── Scrollbar ─────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #F4F5F7; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* ─── Cards & Panels (PDF restrained style) ─── */
+.card-petro, .panel-sharp {
+  background: #FFFFFF;
+  border: 1px solid #D9DEE3;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px 0 rgba(16, 40, 58, 0.05);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+.card-petro:hover, .panel-sharp:hover {
+  box-shadow: 0 2px 6px 0 rgba(16, 40, 58, 0.08);
 }
-::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+
+.panel-header-institutional {
+  background: #10283A;
+  color: #FFFFFF;
+  border-bottom: 1px solid #D9DEE3;
+}
+
+/* ─── Enterprise Tables (PDF style) ──────────── */
+.table-petro, .table-dense {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table-petro th, .table-dense th {
+  padding: 9px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  background-color: #FFFFFF;
+  color: #66717C;
+  border-bottom: 1px solid #D9DEE3;
+  text-align: left;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.table-petro td, .table-dense td {
+  padding: 10px 14px;
+  font-size: 12px;
+  border-bottom: 1px solid #EEF1F4;
+  color: #17212B;
+  transition: background-color 0.1s ease;
+}
+.table-petro tbody tr, .table-dense tbody tr {
+  transition: background-color 0.12s ease;
+}
+.table-petro tbody tr:hover, .table-dense tbody tr:hover {
+  background-color: #F8F9FA;
+}
+.table-petro tbody tr:last-child td, .table-dense tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ─── Status Pills (PDF style) ───────────────── */
+.pill-verified, .pill-pass {
+  background-color: #198754;
+  color: #FFFFFF;
   border-radius: 9999px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+.pill-under-review, .pill-review {
+  background-color: #D98A16;
+  color: #FFFFFF;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pill-open {
+  background-color: #10283A;
+  color: #FFFFFF;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pill-flagged, .pill-fail {
+  background-color: #C83B32;
+  color: #FFFFFF;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pill-paused {
+  background-color: #8C9BA5;
+  color: #FFFFFF;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.badge-pass   { background-color: #EAF5F0; color: #198754; border: 1px solid #A8D9C5; border-radius: 9999px; padding: 2px 9px; font-size: 11px; font-weight: 600; }
+.badge-review { background-color: #FEF7EC; color: #D98A16; border: 1px solid #F6D8A8; border-radius: 9999px; padding: 2px 9px; font-size: 11px; font-weight: 600; }
+.badge-fail   { background-color: #FDF2F2; color: #C83B32; border: 1px solid #F7BEBE; border-radius: 9999px; padding: 2px 9px; font-size: 11px; font-weight: 600; }
+.badge-info   { background-color: #EEF2F6; color: #10283A; border: 1px solid #CBD5E1; border-radius: 9999px; padding: 2px 9px; font-size: 11px; font-weight: 600; }
+.badge-warning{ background-color: #FFF9E6; color: #D98A16; border: 1px solid #F4DC96; border-radius: 9999px; padding: 2px 9px; font-size: 11px; font-weight: 600; }
+
+/* ─── Buttons (PDF rectangular style) ────────── */
+.btn-primary, .btn-navy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  background: #10283A;
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'IBM Plex Sans', sans-serif;
+  border-radius: 4px;
+  border: 1px solid #10283A;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-primary:hover, .btn-navy:hover {
+  background: #18374D;
+  box-shadow: 0 2px 5px rgba(16, 40, 58, 0.2);
+}
+.btn-primary:active, .btn-navy:active { transform: translateY(0); }
+
+.btn-amber {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  background: #D98A16;
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'IBM Plex Sans', sans-serif;
+  border-radius: 4px;
+  border: 1px solid #D98A16;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.btn-amber:hover {
+  background: #BF770E;
 }
 
-/* Glassmorphism utilities */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+.btn-secondary, .btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #FFFFFF;
+  color: #17212B;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'IBM Plex Sans', sans-serif;
+  border-radius: 4px;
+  border: 1px solid #D9DEE3;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.btn-secondary:hover, .btn-outline:hover {
+  background: #F4F5F7;
+  border-color: #C2C9D0;
 }
 
-.dark-glass-panel {
-  background: rgba(13, 21, 39, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+.btn-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  background: #198754;
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'IBM Plex Sans', sans-serif;
+  border-radius: 4px;
+  border: 1px solid #198754;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.btn-success:hover {
+  background: #146C43;
 }
 
-/* Circular Score Progress Badge */
-.circular-score {
+/* ─── KPI Cards ──────────────────────────────── */
+.kpi-card {
+  background: #FFFFFF;
+  border: 1px solid #D9DEDA;
+  padding: 12px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
+}
+.kpi-card:hover {
+  box-shadow: 0 4px 12px rgba(16, 42, 36, 0.10);
+  border-color: #B0BAB4;
+  transform: translateY(-2px);
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: #D9DEDA;
+  transition: background 0.2s ease;
+}
+.kpi-card:hover::before { background: #176B55; }
+.kpi-card.pass::before  { background: #237A57; }
+.kpi-card.warn::before  { background: #B7791F; }
+.kpi-card.fail::before  { background: #B44747; }
+.kpi-card.info::before  { background: #356B82; }
+
+/* ─── Progress Bar ───────────────────────────── */
+.progress-track {
+  height: 3px;
+  background: #E5E9E6;
+  border-radius: 1px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 1px;
+  transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.progress-fill.pass  { background: #237A57; }
+.progress-fill.warn  { background: #B7791F; }
+.progress-fill.fail  { background: #B44747; }
+
+/* ─── Skeleton Loader ────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #ECEEEA 25%, #F5F6F3 50%, #ECEEEA 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 2px;
 }
 
-/* Digital Seal Stamp */
-.digital-seal-stamp {
-  border: 3px solid #0284C7;
-  border-radius: 50%;
-  padding: 8px;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #0369A1, #0284C7);
-  color: white;
-  box-shadow: 0 4px 14px rgba(3, 105, 161, 0.35);
+/* ─── Pulse / Live Indicator ─────────────────── */
+@keyframes pulse-ring {
+  0%   { transform: scale(1); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
+.live-dot {
+  position: relative;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #237A57;
+}
+.live-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #237A57;
+  animation: pulse-ring 1.6s cubic-bezier(0.4,0,0.6,1) infinite;
+}
+
+/* ─── Tooltip ────────────────────────────────── */
+[data-tooltip] {
+  position: relative;
+  cursor: help;
+}
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #102A24;
+  color: #D9DEDA;
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border: 1px solid #1E5A47;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  transform: translateX(-50%) translateY(4px);
+  z-index: 100;
+}
+[data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ─── Step Flow Badge ────────────────────────── */
+.step-flow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.step-flow .step-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  color: #66736D;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.step-flow .step-item.active {
+  color: #176B55;
+}
+.step-flow .step-sep {
+  color: #B0BAB4;
+  font-size: 10px;
+}
+
+/* ─── Sidebar Nav Item Transitions ───────────── */
+.sidebar-nav-item {
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+/* ─── Page slide-in animation ────────────────── */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: fadeSlideIn 0.22s ease forwards;
+}
+
+/* ─── Score Bar (Compliance Score visual) ─────── */
+.score-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.score-bar-track {
+  flex: 1;
+  height: 4px;
+  background: #E5E9E6;
+  border-radius: 1px;
+  overflow: hidden;
+}
+.score-bar-fill {
+  height: 100%;
+  border-radius: 1px;
+  transition: width 0.7s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+
+/* ─── Input Styles ───────────────────────────── */
+.input-field {
+  width: 100%;
+  padding: 7px 10px 7px 32px;
+  background: #F5F6F3;
+  border: 1px solid #D9DEDA;
+  font-size: 12px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  color: #17201C;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  outline: none;
+}
+.input-field:focus {
+  background: #FFFFFF;
+  border-color: #176B55;
+  box-shadow: 0 0 0 2px rgba(23,107,85,0.12);
+}
+.input-field::placeholder { color: #9AA6A0; }
+
+/* ─── Role Tag ───────────────────────────────── */
+.role-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  font-size: 9px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  border-radius: 1px;
+}
+.role-tag.officer { background: #EAF5F0; color: #237A57; border: 1px solid #A8D9C5; }
+.role-tag.admin   { background: #102A24; color: #B08A3E; border: 1px solid #176B55; }
+.role-tag.bidder  { background: #EEF6F9; color: #356B82; border: 1px solid #B7D9E6; }
+

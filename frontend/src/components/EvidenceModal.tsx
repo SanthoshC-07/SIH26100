@@ -52,7 +52,7 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({
             </div>
             <div>
               <div className="font-bold text-sm flex items-center gap-2">
-                <span>Verification Workflow</span>
+                <span>Compliance Verification</span>
                 <span className="text-[10px] font-mono px-2 py-0.5 bg-blue-500/20 text-blue-300 border border-blue-400/30 rounded">
                   {ruleCode}
                 </span>

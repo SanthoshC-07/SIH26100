@@ -1,3 +1,4 @@
+import json
 from typing import Dict, Any, List
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
@@ -5,7 +6,8 @@ from sqlalchemy.orm import Session
 from app.models.models import (
     Bidder, Tender, Requirement, Document, ExtractedEntity,
     ComplianceCheck, Evidence, ComplianceScore, RiskAssessment,
-    Recommendation, PortalVerification, BidderProject, BidderPersonnel
+    Recommendation, PortalVerification, BidderProject, BidderPersonnel,
+    OfficerOverride, RiskFactor
 )
 from app.checkers import get_checker_for_category
 from app.rules import CrossDocumentConsistencyEngine
@@ -95,8 +97,15 @@ class ComplianceEngine:
             ]
         }
 
-        # Clear existing compliance checks for re-run
-        db.query(ComplianceCheck).filter(ComplianceCheck.bidder_id == bidder_id).delete()
+        # Clear existing compliance checks and child references for re-run safely
+        old_checks = db.query(ComplianceCheck).filter(ComplianceCheck.bidder_id == bidder_id).all()
+        old_check_ids = [c.id for c in old_checks]
+        if old_check_ids:
+            db.query(Evidence).filter(Evidence.compliance_check_id.in_(old_check_ids)).delete(synchronize_session=False)
+            db.query(RiskFactor).filter(RiskFactor.compliance_check_id.in_(old_check_ids)).delete(synchronize_session=False)
+            db.query(OfficerOverride).filter(OfficerOverride.compliance_check_id.in_(old_check_ids)).delete(synchronize_session=False)
+        db.query(RiskFactor).filter(RiskFactor.bid_id == bidder_id).delete(synchronize_session=False)
+        db.query(ComplianceCheck).filter(ComplianceCheck.bidder_id == bidder_id).delete(synchronize_session=False)
         if bidder.compliance_score:
             db.delete(bidder.compliance_score)
         if bidder.risk_assessment:
@@ -106,13 +115,53 @@ class ComplianceEngine:
         db.commit()
 
         checks_created = []
+        valid_doc_ids = {d.id for d in documents}
 
+        import re
         for req in requirements:
             cat = (req.category or "OTHER").upper()
             mandatory = req.mandatory
+            clause_no = (getattr(req, "clause_number", "") or "").upper()
+
+            # Requirement-isolated document mapping
+            matched_docs = []
+            for d in documents:
+                name_lower = d.document_name.lower()
+                if clause_no and clause_no.lower() in name_lower:
+                    matched_docs.append(d)
+                    continue
+                num_match = re.search(r"req-?0*(\d+)", clause_no, re.IGNORECASE)
+                if num_match:
+                    prefix = f"{int(num_match.group(1)):02d}_"
+                    if prefix in name_lower or f"0{num_match.group(1)}_" in name_lower or f"req-0{num_match.group(1)}" in name_lower:
+                        matched_docs.append(d)
+                        continue
+                if cat in ["GST", "GST_TAX_COMPLIANCE"] and "gst" in name_lower:
+                    matched_docs.append(d)
+                elif cat in ["PAN", "INCOME_TAX_PAN"] and "pan" in name_lower:
+                    matched_docs.append(d)
+                elif cat in ["FINANCIAL_TURNOVER", "FINANCIAL_ELIGIBILITY", "FINANCIAL", "TURNOVER"] and any(k in name_lower for k in ["financial", "turnover", "ca_cert", "audited"]):
+                    matched_docs.append(d)
+                elif cat in ["SIMILAR_PIPELINE_EXPERIENCE", "SIMILAR_WORK", "SIMILAR_PIPELINE"] and any(k in name_lower for k in ["similar", "pipeline_exp", "pipeline_experience"]):
+                    matched_docs.append(d)
+                elif cat in ["TECHNICAL_MANPOWER", "MANPOWER"] and any(k in name_lower for k in ["manpower", "personnel", "cv", "engineer"]):
+                    matched_docs.append(d)
+                elif cat in ["OIL_GAS_EXPERIENCE", "EXPERIENCE_ELIGIBILITY"] and any(k in name_lower for k in ["oil_gas", "sector_exp", "experience_cert", "oil & gas"]):
+                    matched_docs.append(d)
+                elif cat in ["HSE_SAFETY", "HSE", "SAFETY"] and any(k in name_lower for k in ["hse", "safety", "iso"]):
+                    matched_docs.append(d)
+
+            matched_doc_ids = {d.id for d in matched_docs}
+            if not matched_docs and len(documents) == 1:
+                matched_docs = documents
+                matched_doc_ids = {d.id for d in documents}
+
+            req_entities = [e for e in entities_data if e.get("document_id") in matched_doc_ids]
+            req_chunks = [c for c in doc_chunks if c.get("document_id") in matched_doc_ids]
 
             req_dict = {
                 "id": req.id,
+                "clause_number": getattr(req, "clause_number", None),
                 "category": cat,
                 "description": req.description,
                 "threshold": req.threshold,
@@ -124,14 +173,32 @@ class ComplianceEngine:
             }
 
             evidence_context = {
-                "entities": entities_data,
-                "doc_chunks": doc_chunks,
+                "entities": req_entities,
+                "doc_chunks": req_chunks,
                 "tender_number": tender.tender_number
             }
 
-            # Dispatch to appropriate Checker
+            # Dispatch to appropriate Checker (verify takes requirement, evidence, bidder)
             checker = get_checker_for_category(cat)
-            result = checker.verify(req_dict, bidder_context, evidence_context)
+            result = checker.verify(req_dict, evidence_context, bidder_context)
+
+            # Validate document_id against actual documents table to avoid FK constraint failure
+            resolved_doc_id = result.get("document_id")
+            if resolved_doc_id not in valid_doc_ids:
+                resolved_doc_id = None
+
+            # Serialize evidence to string if it is a list or dict
+            raw_evidence = result.get("evidence", "")
+            if isinstance(raw_evidence, (list, dict)):
+                evidence_str = json.dumps(raw_evidence)
+            else:
+                evidence_str = str(raw_evidence or "")
+
+            raw_source = result.get("evidence") if result.get("evidence") is not None else result.get("reason", "")
+            if isinstance(raw_source, (list, dict)):
+                source_str = json.dumps(raw_source)
+            else:
+                source_str = str(raw_source or "")
 
             # Create ComplianceCheck record
             check_record = ComplianceCheck(
@@ -141,8 +208,8 @@ class ComplianceEngine:
                 confidence=result.get("confidence", 1.0),
                 score_contribution=1.0 if result.get("status") == "PASS" else (0.5 if result.get("status") == "REVIEW" else 0.0),
                 reason=result.get("reason", ""),
-                evidence_text=result.get("evidence", ""),
-                document_id=result.get("document_id"),
+                evidence_text=evidence_str,
+                document_id=resolved_doc_id,
                 document_name=result.get("document_name"),
                 page_number=result.get("page_number", 1),
                 verification_source=result.get("source", "RULE_ENGINE"),
@@ -159,7 +226,7 @@ class ComplianceEngine:
                 document_id=result.get("document_id"),
                 document_name=result.get("document_name"),
                 page_number=result.get("page_number", 1),
-                source_text=result.get("evidence", result.get("reason", "")),
+                source_text=source_str,
                 extraction_method="PDF_TEXT",
                 extracted_entities=result.get("verification_details", {}),
                 confidence=result.get("confidence", 1.0),
@@ -223,8 +290,9 @@ class ComplianceEngine:
         )
         db.add(rec_record)
 
-        # Update bidder status
-        bidder.status = "UNDER_REVIEW" if risk_data["risk_level"] in ["HIGH", "CRITICAL", "MEDIUM"] else "VERIFIED"
+        # Update bidder status (preserve final officer determinations)
+        if bidder.status not in ["QUALIFIED", "DISQUALIFIED"]:
+            bidder.status = "UNDER_REVIEW" if risk_data["risk_level"] in ["HIGH", "CRITICAL", "MEDIUM"] else "VERIFIED"
         db.commit()
 
         # Audit log
@@ -248,6 +316,8 @@ class ComplianceEngine:
         return {
             "bidder_id": bidder.id,
             "status": bidder.status,
+            "compliance_score": score_data["overall_score"],
+            "risk_level": risk_data["risk_level"],
             "score": score_data,
             "risk": risk_data,
             "recommendation": rec_data

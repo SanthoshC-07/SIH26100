@@ -1,9 +1,14 @@
 import api from './api';
-import { Bidder, BidderDetail, Document } from '../types';
+import { Bidder, BidderDetail, Document, DebarmentRecord } from '../types';
 
 export const bidderService = {
   getBidders: async (tenderId?: string): Promise<Bidder[]> => {
     const res = await api.get('/bidders', { params: { tender_id: tenderId } });
+    return res.data;
+  },
+
+  getBids: async (): Promise<any[]> => {
+    const res = await api.get('/bids');
     return res.data;
   },
 
@@ -38,4 +43,39 @@ export const bidderService = {
     });
     return res.data;
   },
+
+  uploadRequirementEvidence: async (
+    bidderId: string,
+    file: File,
+    requirementId?: string,
+    category?: string
+  ): Promise<any> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (requirementId) formData.append('requirement_id', requirementId);
+    if (category) formData.append('category', category);
+    const res = await api.post(`/bidders/${bidderId}/upload-requirement-evidence`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  },
+
+  getDebarmentCheck: async (bidderId: string): Promise<DebarmentRecord> => {
+    const res = await api.get(`/bidders/${bidderId}/debarment-check`);
+    return res.data;
+  },
+
+  recordSelectingAuthorityDecision: async (
+    bidderId: string,
+    payload: {
+      decision: string;
+      remarks: string;
+      statutory_rule?: string;
+      technical_score?: number;
+      financial_cleared?: boolean;
+    }
+  ): Promise<any> => {
+    const res = await api.post(`/bidders/${bidderId}/selecting-authority`, payload);
+    return res.data;
+  }
 };

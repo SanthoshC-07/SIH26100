@@ -1,0 +1,23 @@
+requirement_text,evidence_text,label,category,source_type
+"Minimum 100 KM natural gas pipeline experience","Completed 135 KM natural gas transmission pipeline for GAIL.",1,EXPERIENCE_ELIGIBILITY,SYNTHETIC_MOCK_BIDDER
+"Minimum 100 KM natural gas pipeline experience","Completed 60 KM road construction and municipal drainage project.",0,EXPERIENCE_ELIGIBILITY,SYNTHETIC_MOCK_BIDDER
+"The bidder must have average annual turnover of at least INR 25 crore.","Audited financial turnover of INR 27.5 Crore per year for last 3 financial years.",1,FINANCIAL_ELIGIBILITY,SYNTHETIC_MOCK_BIDDER
+"The bidder must have average annual turnover of at least INR 25 crore.","Balance sheet indicates turnover of INR 8.5 Crore for preceding fiscal year.",0,FINANCIAL_ELIGIBILITY,SYNTHETIC_MOCK_BIDDER
+"Line pipes of minimum 24-inch diameter API 5L Grade X70.","Supplied 24-inch outer diameter API 5L X70 PSL2 line pipes.",1,TECHNICAL_SPECIFICATION,SYNTHETIC_MOCK_BIDDER
+"Line pipes of minimum 24-inch diameter API 5L Grade X70.","Fabricated 12-inch water distribution carbon steel pipes.",0,TECHNICAL_SPECIFICATION,SYNTHETIC_MOCK_BIDDER
+"Minimum 7 years experience in oil and gas pipeline construction.","Demonstrated 8 years of pipeline EPC execution across GAIL and IOCL networks.",1,EXPERIENCE_ELIGIBILITY,SYNTHETIC_MOCK_BIDDER
+"Minimum 7 years experience in oil and gas pipeline construction.","Firm incorporated 2 years ago with 1 completed civil works order.",0,EXPERIENCE_ELIGIBILITY,SYNTHETIC_MOCK_BIDDER
+"Minimum 5 qualified pipeline engineers with at least 5 years experience.","Deployment of 6 certified Lead Pipeline Engineers with 7+ years project experience.",1,TECHNICAL_SPECIFICATION,SYNTHETIC_MOCK_BIDDER
+"Minimum 5 qualified pipeline engineers with at least 5 years experience.","Staffing sheet includes 2 junior site supervisors and 1 accountant.",0,TECHNICAL_SPECIFICATION,SYNTHETIC_MOCK_BIDDER
+"Valid GST registration certificate in the relevant State.","Active GSTIN registration certificate 29MOCKP1234M1Z5 attached.",1,GST_TAX_COMPLIANCE,SYNTHETIC_MOCK_BIDDER
+"Valid GST registration certificate in the relevant State.","PAN card copy submitted without GST registration document.",0,GST_TAX_COMPLIANCE,SYNTHETIC_MOCK_BIDDER
+"Udyam registration certificate for MSME classification.","Valid Udyam Registration Certificate UDYAM-KR-03-0012345 submitted.",1,MSME_UDYAM_ELIGIBILITY,SYNTHETIC_MOCK_BIDDER
+"Udyam registration certificate for MSME classification.","Trade license copy without MSME or Udyam accreditation.",0,MSME_UDYAM_ELIGIBILITY,SYNTHETIC_MOCK_BIDDER
+"Manufacturer Authorization Form (MAF) from valve OEM conforming to API 6D.","Signed MAF and back-to-back warranty commitment from API 6D valve manufacturer.",1,OEM_AUTHORIZATION,SYNTHETIC_MOCK_BIDDER
+"Manufacturer Authorization Form (MAF) from valve OEM conforming to API 6D.","General catalog leaflet without manufacturer authorization letter.",0,OEM_AUTHORIZATION,SYNTHETIC_MOCK_BIDDER
+"Affidavit confirming non-blacklisting and no debarment by PSUs.","Notarized affidavit on non-judicial stamp paper confirming zero debarment.",1,BLACKLISTING_DEBARMENT,SYNTHETIC_MOCK_BIDDER
+"Affidavit confirming non-blacklisting and no debarment by PSUs.","Standard company profile with no sworn statement regarding non-debarment.",0,BLACKLISTING_DEBARMENT,SYNTHETIC_MOCK_BIDDER
+"ISO 45001 Occupational Health & Safety Management certification.","Valid accredited ISO 45001:2018 OHSMS certificate attached.",1,SAFETY_REGULATORY_COMPLIANCE,SYNTHETIC_MOCK_BIDDER
+"ISO 45001 Occupational Health & Safety Management certification.","ISO 9001 quality certificate provided without HSE accreditation.",0,SAFETY_REGULATORY_COMPLIANCE,SYNTHETIC_MOCK_BIDDER
+"Minimum 50 percent local content under Make in India policy.","CA certified Make in India local content certificate declaring 62.5% indigenous content.",1,MAKE_IN_INDIA_LOCAL_CONTENT,SYNTHETIC_MOCK_BIDDER
+"Minimum 50 percent local content under Make in India policy.","Import declaration indicating 75% imported components by invoice value.",0,MAKE_IN_INDIA_LOCAL_CONTENT,SYNTHETIC_MOCK_BIDDER

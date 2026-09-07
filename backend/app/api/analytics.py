@@ -3,13 +3,17 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.models import Tender, Bidder, ComplianceCheck, ComplianceScore, RiskAssessment, AuditLog
+from app.models.models import Tender, Bidder, ComplianceCheck, ComplianceScore, RiskAssessment, AuditLog, User
 from app.schemas.schemas import DashboardStatsResponse
+from app.api.deps import require_any_role
 
 router = APIRouter(prefix="/analytics", tags=["Analytics & Dashboard"])
 
 @router.get("/dashboard", response_model=DashboardStatsResponse)
-def get_dashboard_kpis(db: Session = Depends(get_db)):
+def get_dashboard_kpis(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_any_role("PROCUREMENT_OFFICER", "ADMIN"))
+):
     total_tenders = db.query(Tender).count()
     active_tenders = db.query(Tender).filter(Tender.status == "ACTIVE").count()
     total_bidders = db.query(Bidder).count()

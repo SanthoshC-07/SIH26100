@@ -9,7 +9,10 @@ class LocalContentRuleEngine:
     ) -> Dict[str, Any]:
         req_pct = required_percentage or 50.0
         
-        local_content_items = [e for e in extracted_entities if e.get("entity_type") == "LOCAL_CONTENT_PERCENT"]
+        local_content_items = [
+            e for e in extracted_entities 
+            if e.get("entity_type") in ["LOCAL_CONTENT_PERCENT", "LOCAL_CONTENT_DECLARATION", "LOCAL_CONTENT"]
+        ]
         
         if not local_content_items:
             return {
@@ -25,10 +28,19 @@ class LocalContentRuleEngine:
             }
 
         first_item = local_content_items[0]
-        try:
-            declared_pct = float(first_item.get("normalized_value", 0))
-        except ValueError:
-            declared_pct = 0.0
+        declared_pct = 0.0
+        if first_item.get("normalized_value") is not None:
+            try:
+                declared_pct = float(first_item.get("normalized_value"))
+            except ValueError:
+                declared_pct = 0.0
+        else:
+            val_str = str(first_item.get("entity_value", ""))
+            import re
+            m = re.search(r"(\d+(?:\.\d+)?)", val_str)
+            if m:
+                declared_pct = float(m.group(1))
+
 
         passed = declared_pct >= req_pct
         classification = "Class-I Local Supplier" if declared_pct >= 50 else ("Class-II Local Supplier" if declared_pct >= 20 else "Non-Local Supplier")

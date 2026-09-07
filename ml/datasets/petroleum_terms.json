@@ -1,0 +1,72 @@
+{
+  "sectors": {
+    "OIL_AND_GAS": [
+      "oil & gas", "oil and gas", "petroleum", "hydrocarbon", "hydrocarbons",
+      "refinery", "petrochemical", "upstream", "midstream", "downstream",
+      "lng terminal", "lpg terminal", "city gas distribution", "cgd"
+    ],
+    "NATURAL_GAS": [
+      "natural gas", "gas transmission", "gas pipeline", "regasified lng",
+      "cng", "piped natural gas", "png", "trunk pipeline"
+    ],
+    "CRUDE_OIL": [
+      "crude oil", "crude transmission", "petroleum product", "hsd", "ms",
+      "atf", "cross-country crude pipeline"
+    ]
+  },
+  "pipeline_construction_terms": [
+    "pipeline", "gas pipeline", "oil pipeline", "transmission pipeline",
+    "cross-country pipeline", "cross country pipeline", "pipeline construction",
+    "pipeline laying", "epc", "epc contractor", "turnkey", "hydrotesting",
+    "hydrostatic testing", "hdd", "horizontal directional drilling",
+    "welding", "pipeline welding", "trenching", "backfilling",
+    "commissioning", "pre-commissioning", "scada", "cathodic protection",
+    "right of way", "row", "pressure testing", "golden tie-in",
+    "cased crossing", "sv station", "sectionalizing valve", "ip station",
+    "intermediate pigging station", "compressor station", "metering station"
+  ],
+  "technical_standards": {
+    "oisd-141": "OISD-141 (Design and Construction Requirements for Cross Country Hydrocarbon Pipelines)",
+    "asme b31.8": "ASME B31.8 (Gas Transmission and Distribution Piping Systems)",
+    "asme b31.4": "ASME B31.4 (Pipeline Transportation Systems for Liquids and Slurries)",
+    "api 5l": "API Spec 5L (Specification for Line Pipe)",
+    "api 6d": "API Spec 6D (Specification for Pipeline and Piping Valves)",
+    "api 1104": "API 1104 (Welding of Pipelines and Related Facilities)",
+    "pngrb": "Petroleum and Natural Gas Regulatory Board Regulations",
+    "iso 45001": "ISO 45001:2018 (Occupational Health & Safety Management System)",
+    "iso 14001": "ISO 14001:2015 (Environmental Management System)",
+    "iso 9001": "ISO 9001:2015 (Quality Management System)"
+  },
+  "manpower_roles": [
+    "pipeline engineer", "lead pipeline engineer", "project manager",
+    "welding engineer", "welding inspector", "qa/qc engineer", "qa/qc manager",
+    "hse officer", "safety officer", "safety manager", "ndt engineer",
+    "cathodic protection engineer", "commissioning engineer", "site incharge",
+    "resident construction manager", "pipeline superintendent"
+  ],
+  "certifications": [
+    "ndt level ii", "ndt level iii", "asnt level ii", "asnt level iii",
+    "cswip 3.1", "cswip 3.2", "aws cwi", "nebosh", "nebosh igc",
+    "nace cp level 1", "nace cp level 2", "iso 45001 lead auditor",
+    "iso 14001 lead auditor"
+  ],
+  "psu_clients": [
+    "gail", "gail (india) limited", "iocl", "indian oil corporation limited",
+    "ongc", "oil and natural gas corporation", "bpcl", "bharat petroleum",
+    "hpcl", "hindustan petroleum", "oil india limited", "oil",
+    "gspc", "gujarat state petroleum corporation", "adani total gas",
+    "torrent gas", "indraprastha gas", "igl", "mahanagar gas", "mgl"
+  ],
+  "locked_requirement_classes": [
+    "GST_TAX_COMPLIANCE",
+    "MSME_UDYAM_ELIGIBILITY",
+    "FINANCIAL_ELIGIBILITY",
+    "EXPERIENCE_ELIGIBILITY",
+    "OEM_AUTHORIZATION",
+    "BLACKLISTING_DEBARMENT",
+    "TECHNICAL_SPECIFICATION",
+    "INDUSTRY_STANDARD_COMPLIANCE",
+    "SAFETY_REGULATORY_COMPLIANCE",
+    "MAKE_IN_INDIA_LOCAL_CONTENT"
+  ]
+}

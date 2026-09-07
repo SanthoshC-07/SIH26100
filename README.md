@@ -3,6 +3,7 @@
 
 [![Smart India Hackathon 2026](https://img.shields.io/badge/SIH-2026-orange.svg)](https://www.sih.gov.in/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688.svg)](https://fastapi.tiangolo.com/)
+[![Database](https://img.shields.io/badge/Database-SQLite%203%20%2F%20SQLAlchemy-003B57.svg)](https://sqlite.org/)
 [![React](https://img.shields.io/badge/Frontend-React%20%2B%20TypeScript%20%2B%20Vite-61DAFB.svg)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS-38B2AC.svg)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/License-MoPNG%20%2F%20GeM%20Compliant-blue.svg)]()
@@ -23,14 +24,14 @@ In major public procurement for **Petroleum & Natural Gas pipeline construction*
 
 ## 2. The 7 Core Compliance Checks Architecture
 
-Rather than implementing 20–30 generic, shallow checks, the platform implements **7 deep, modular verification services**:
+Rather than implementing shallow, generic checks, the platform implements **7 deep, modular verification services**:
 
 ```
                                   Tender Specification (PDF)
                                              ↓
                                 Hybrid PyMuPDF & Tesseract OCR
                                              ↓
-                             NLP Tender Clause Matrix Parser
+                               NLP Tender Clause Matrix Parser
                                              ↓
                             Bidder Document Dossier (PDFs/Images)
                                              ↓
@@ -59,42 +60,31 @@ Rather than implementing 20–30 generic, shallow checks, the platform implement
                    Procurement Officer Review / Override & Audit Log
 ```
 
-### Pluggable Extension Stubs
-The modular architecture provides clean interface stubs (`BaseComplianceCheckExtension`) ready for future enterprise integrations:
-- **Udyam / MSME**
-- **EPFO Electronic Challan Remittance**
-- **ESIC Contribution Verification**
-- **Startup India Waiver Engine**
-- **NSIC Single Point Registration**
-- **DigiLocker Verification**
-- **Equipment & Heavy Machinery (HDD Rigs / Sidebooms)**
-- **ISO 9001 Quality Certifications**
-
 ---
 
-## 3. Technology Stack
+## 3. Technology Stack & Database Architecture
 
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Lucide Icons, Recharts, Axios
 - **Backend**: Python 3.11+, FastAPI, Pydantic v2, SQLAlchemy 2.0, Uvicorn
-- **Database**: PostgreSQL (Docker Compose) / SQLite (zero-config local runtime)
-- **Document AI & NLP**: PyMuPDF (Fitz), Tesseract OCR fallback, scikit-learn TF-IDF / Sentence Vector embeddings, Regex & Rule Heuristics
-- **DevOps**: Docker, Docker Compose
+- **Database**: **SQLite 3** (Default zero-config database stack: `DATABASE_URL=sqlite:///./app.db` with `PRAGMA foreign_keys=ON` and Alembic migrations). SQLAlchemy ORM abstraction keeps the persistence layer 100% portable for production scaling to PostgreSQL.
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Lucide Icons, Recharts, Axios
+- **Document AI & NLP**: PyMuPDF (Fitz), Tesseract OCR fallback, Sentence Transformers (`all-MiniLM-L6-v2`), FAISS vector retrieval, scikit-learn cosine similarity
+- **DevOps**: Docker, Docker Compose (Clean two-tier architecture: Backend + Frontend + Persistent volume mounted at `./data`)
 
 ---
 
-## 4. Pre-Seeded Demonstration Tenders & Bidders
+## 4. Demonstration Bidders & Petroleum Data
 
-The system comes pre-seeded with the primary petroleum pipeline tender:
-**GAIL/2026/PL-NC/4182: 150 km 24-inch API 5L X70 Cross-Country Natural Gas Pipeline Construction (Est. Value: ₹240.00 Cr)**
+The platform comes with pre-seeded demo data including the primary pipeline tender:
+**MOPNG/PIPE/2026/017: 150 km, 24-inch Outer Diameter API 5L Grade X70 Cross-Country Natural Gas Transmission Pipeline (Est. Value: ₹240.00 Cr)**
 
-### 4 Distinct Evaluated Bidder Profiles:
+### Evaluated Bidder Profiles:
 
-| Bidder Entity | Turnover (Req: ₹10 Cr) | Similar Pipeline Exp. (Req: >=100 km) | Technical Manpower (Req: >=5 Engg) | Outcome & Score | Risk Level |
+| Bidder Entity | Turnover (Req: ₹25 Cr Avg) | Similar Pipeline Exp. (Req: >=100 km, 24") | Technical Manpower (Req: >=5 Engg) | Outcome & Score | Risk Level |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Larsen & Toubro Hydrocarbon Engineering** | **₹21.67 Cr** (Avg) | **165 km** 24" GAIL Line | **6 Engineers** (9-14 yrs exp) | **PASS (100/100)** | **LOW RISK** |
-| **Indus Pipeline Infrastructure Ltd** | **₹6.83 Cr** (Shortfall ₹3.17 Cr) | **60 km** (Shortfall 40 km) | **3 Engineers** (Shortfall 2) | **FAIL (60/100)** | **HIGH RISK** |
-| **PetroCon Energy Projects LLP** | **₹12.50 Cr** (Avg) | **95 km** CGD Network (Surat) | **5 Engineers** (1 with 7.5 yrs) | **REVIEW (85/100)** | **MEDIUM RISK** |
-| **Vanguard Hydrocarbon Solutions** | **₹15.17 Cr** (Avg) | Verified in Technical Bid | Verified | **REVIEW (80/100)** | **CRITICAL RISK (Identity / Debarment Flag)** |
+| **PRAVEEN B S ENGINEERING SERVICES** | **₹27.00 Cr** (Avg) | **135 km** 24" GAIL Pipeline | **5 Engineers** (8-12 yrs exp) | **PASS (100/100)** | **LOW RISK** |
+| **Indus Pipeline Infrastructure Ltd** | **₹6.83 Cr** (Shortfall ₹18.17 Cr) | **60 km** (Shortfall 40 km) | **3 Engineers** (Shortfall 2) | **FAIL (60/100)** | **CRITICAL RISK** |
+| **PetroCon Energy Projects LLP** | **₹12.50 Cr** (Avg) | **95 km** CGD Network (Surat) | **5 Engineers** (1 with 7.5 yrs) | **REVIEW (60/100)** | **CRITICAL RISK** |
+| **Vanguard Hydrocarbon Solutions** | **₹15.17 Cr** (Avg) | Verified in Technical Bid | Verified | **REVIEW (60/100)** | **CRITICAL RISK (Debarment Flag)** |
 
 ---
 
@@ -108,7 +98,14 @@ The system comes pre-seeded with the primary petroleum pipeline tender:
 ```bash
 cd backend
 pip install -r requirements.txt
+
+# Run Alembic migrations (Optional on fresh install as FastAPI auto-initializes)
+python -m alembic upgrade head
+
+# Seed petroleum pipeline tenders & demo bidders
 python seed_data.py
+
+# Start FastAPI dev server
 uvicorn app.main:app --reload --port 8000
 ```
 Backend Swagger API Documentation: `http://127.0.0.1:8000/docs`
@@ -130,7 +127,7 @@ Frontend Web Dashboard: `http://localhost:5173`
 
 ## 6. Running Automated Tests
 
-Run the full Pytest test suite covering all 7 core rules, adapters, scoring weights, risk classification, and end-to-end evaluation:
+Run the full Pytest test suite covering all 65 tests (SQLite persistence, core checkers, NLP extraction, scoring, confidence gating, adapters):
 
 ```bash
 cd backend
@@ -139,10 +136,10 @@ pytest -v
 
 ---
 
-## 7. Key Capabilities & Highlights
+## 7. Key Capabilities
 
-1. **Deterministic Financial Verification**: Turnover calculations (e.g. $\text{Avg} = \frac{18.50 + 22.00 + 24.50}{3} = 21.67\text{ Cr}$) use strict Python arithmetic with interactive breakdown cards.
-2. **Semantic Experience Matching**: Identifies hydrocarbon, refinery, and gas pipeline projects semantically without relying solely on keywords.
-3. **Pipeline Parameter Extraction**: Quantifies pipeline lengths (km), pipe diameters (inches/mm), and material specifications (API 5L X70).
-4. **Interactive Ground-Truth Evidence Viewer**: Inspect exact document name, page number, confidence percentage, calculation table, and OCR text excerpt.
-5. **Human-in-the-Loop Officer Override**: Officers can accept or override AI recommendations to `PASS`, `FAIL`, or `REVIEW` with mandatory remarks logged in the GFR-compliant audit trail.
+1. **Zero-Configuration SQLite Persistence**: Out-of-the-box local database with full foreign key constraints and migration support.
+2. **Deterministic Financial Verification**: Turnover arithmetic $(Y_1 + Y_2 + Y_3) / 3 \ge \text{Threshold}$ with interactive formula breakdown cards.
+3. **Semantic Pipeline Scope Matching**: Sentence Transformers embeddings compare project scopes against petroleum pipeline specifications.
+4. **Interactive Evidence Viewer**: Auditable page-level citations citing exact document filename, page number, and OCR text excerpt.
+5. **Human-in-the-Loop Officer Override**: Officers can review, accept, or override AI recommendations with mandatory justification logs.

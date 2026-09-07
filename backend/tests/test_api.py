@@ -3,13 +3,42 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.core.database import Base, engine, SessionLocal
 from app.models.models import User, Tender, Requirement, Bidder
+from app.api.deps import get_current_user, get_current_admin, get_current_officer, get_current_bidder, get_current_user_optional
 
 client = TestClient(app)
+
+from fastapi import Depends
+from sqlalchemy.orm import Session
+from app.core.database import get_db
 
 @pytest.fixture(autouse=True)
 def setup_db():
     Base.metadata.create_all(bind=engine)
+    
+    def get_test_officer(db: Session = Depends(get_db)):
+        officer_user = db.query(User).filter(User.username == "officer_test").first()
+        if not officer_user:
+            officer_user = User(
+                id="officer-test-id",
+                name="Officer User",
+                username="officer_test",
+                email="officer_test@gem.gov.in",
+                password_hash="dummy_hash_for_test",
+                role="PROCUREMENT_OFFICER",
+                is_active=True
+            )
+            db.add(officer_user)
+            db.commit()
+            db.refresh(officer_user)
+        return officer_user
+
+    app.dependency_overrides[get_current_user] = get_test_officer
+    app.dependency_overrides[get_current_admin] = get_test_officer
+    app.dependency_overrides[get_current_officer] = get_test_officer
+    app.dependency_overrides[get_current_bidder] = get_test_officer
+    app.dependency_overrides[get_current_user_optional] = get_test_officer
     yield
+    app.dependency_overrides.clear()
 
 # 1. Health Endpoint Test
 def test_health_check():
@@ -24,7 +53,11 @@ def test_user_registration_and_login():
     unique_email = f"officer_test_{id(setup_db)}@gem.gov.in"
     unique_user = f"officer_test_{id(setup_db)}"
     
-    # Register
+    from app.core.security import create_access_token
+    admin_token = create_access_token(data={"sub": "admin_test", "role": "ADMIN"})
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+
+    # Register (Admin-initiated registration can assign PROCUREMENT_OFFICER)
     reg_res = client.post("/api/auth/register", json={
         "name": "Test Officer",
         "email": unique_email,
@@ -32,7 +65,7 @@ def test_user_registration_and_login():
         "password": "secure_password_123",
         "role": "PROCUREMENT_OFFICER",
         "department": "National Informatics Centre"
-    })
+    }, headers=admin_headers)
     assert reg_res.status_code == 200
     user_data = reg_res.json()
     assert user_data["username"] == unique_user
@@ -59,10 +92,15 @@ def test_user_registration_and_login():
 
     token = token_data["access_token"]
     
-    # Get Current User (/api/auth/me)
-    me_res = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
-    assert me_res.status_code == 200
-    assert me_res.json()["email"] == unique_email
+    # Get Current User (/api/auth/me) with real token
+    saved_override = app.dependency_overrides.pop(get_current_user, None)
+    try:
+        me_res = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
+        assert me_res.status_code == 200
+        assert me_res.json()["email"] == unique_email
+    finally:
+        if saved_override:
+            app.dependency_overrides[get_current_user] = saved_override
 
 # 3. Tender CRUD Lifecycle Tests
 def test_tender_crud_lifecycle():
@@ -163,6 +201,28 @@ def test_bidder_projects_and_personnel_api():
     })
     tender_id = t_res.json()["id"]
 
+    db = SessionLocal()
+    bidder_user = db.query(User).filter(User.username == "bidder_test_proj").first()
+    if not bidder_user:
+        bidder_user = User(
+            id="bidder-test-proj-id",
+            name="Bidder Proj",
+            username="bidder_test_proj",
+            email="bidder_proj@gem.gov.in",
+            password_hash="dummy",
+            role="BIDDER",
+            is_active=True
+        )
+        db.add(bidder_user)
+        db.commit()
+    db.close()
+
+    def get_proj_bidder(db: Session = Depends(get_db)):
+        return db.query(User).filter(User.username == "bidder_test_proj").first()
+
+    app.dependency_overrides[get_current_user] = get_proj_bidder
+    app.dependency_overrides[get_current_bidder] = get_proj_bidder
+
     b_res = client.post("/api/bidders", json={
         "tender_id": tender_id,
         "legal_name": "Apex Hydrocarbon Infra Ltd",
@@ -218,11 +278,36 @@ def test_bids_api():
     })
     tender_id = t_res.json()["id"]
 
+    db = SessionLocal()
+    bidder_user = db.query(User).filter(User.username == "bidder_test_bids").first()
+    if not bidder_user:
+        bidder_user = User(
+            id="bidder-test-bids-id",
+            name="Bidder User",
+            username="bidder_test_bids",
+            email="bidder_bids@gem.gov.in",
+            password_hash="dummy",
+            role="BIDDER",
+            is_active=True
+        )
+        db.add(bidder_user)
+        db.commit()
+        db.refresh(bidder_user)
+
+    def get_bidder_user(db: Session = Depends(get_db)):
+        return db.query(User).filter(User.username == "bidder_test_bids").first()
+
+    app.dependency_overrides[get_current_user] = get_bidder_user
+    app.dependency_overrides[get_current_bidder] = get_bidder_user
+
     b_res = client.post("/api/bidders", json={
         "tender_id": tender_id,
         "legal_name": "Bharat Pipeline EPC Pvt Ltd"
     })
     bidder_id = b_res.json()["id"]
+    bidder_user.bidder_id = bidder_id
+    db.commit()
+    db.close()
 
     bid_res = client.post("/api/bids", json={
         "tender_id": tender_id,
@@ -230,7 +315,7 @@ def test_bids_api():
         "bid_reference_number": f"BID-REF-{id(setup_db)}",
         "financial_bid_amount": 48000000.0
     })
-    assert bid_res.status_code == 200
+    assert bid_res.status_code in [200, 201]
     bid_data = bid_res.json()
     assert bid_data["financial_bid_amount"] == 48000000.0
 

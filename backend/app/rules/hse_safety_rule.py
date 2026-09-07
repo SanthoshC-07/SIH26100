@@ -54,10 +54,10 @@ class HSESafetyRuleEngine:
 
         if not hse_certs:
             return {
-                "status": "FAIL" if mandatory else "REVIEW",
-                "confidence": 0.92,
-                "reason": "No valid HSE / Safety Management System certifications (ISO 45001 / ISO 14001) or Corporate Safety Policy found in technical documents.",
-                "evidence": "Missing required petroleum HSE compliance certificates.",
+                "status": "INSUFFICIENT",
+                "confidence": 0.95,
+                "reason": "Missing mandatory HSE / Safety Management System documentation (ISO 45001 / ISO 14001 certificates missing from bid submission).",
+                "evidence": "No HSE or safety policy documents found in submitted technical submission.",
                 "document_id": None,
                 "document_name": "HSE_Manual.pdf",
                 "page_number": 1,
@@ -72,6 +72,51 @@ class HSESafetyRuleEngine:
             }
 
         cert_names = [c["cert"] for c in hse_certs]
+        all_text = " ".join(c["cert"] + " " + c["snippet"] for c in hse_certs).lower()
+
+        # Check for expired certifications
+        is_expired = any(kw in all_text for kw in [
+            "expired", "lapsed", "validity expired", "certificate expired",
+            "valid till 2020", "valid till 2021", "valid till 2022", "valid till 2023"
+        ])
+        if is_expired:
+            return {
+                "status": "FAIL",
+                "confidence": 0.98,
+                "reason": f"HSE safety certification ({', '.join(cert_names[:2])}) is expired and no longer valid.",
+                "evidence": best_snippet or f"Expired HSE Document: {', '.join(cert_names)}",
+                "document_id": best_doc_id,
+                "document_name": best_doc_name,
+                "page_number": best_page_num,
+                "source": "HSE_SAFETY_ENGINE",
+                "method": "CERTIFICATION_AND_POLICY_VERIFIER",
+                "calculation_breakdown": {
+                    "certifications_verified": cert_names,
+                    "expired": True,
+                    "requirement_met": False
+                }
+            }
+
+        is_provisional = any(kw in all_text for kw in ["provisional", "clarification required", "verification required", "renewal verification", "renewal stamp", "pending"])
+
+        if is_provisional:
+            return {
+                "status": "REVIEW",
+                "confidence": 0.75,
+                "reason": f"Provisional HSE certificate submitted ({', '.join(cert_names[:2])}). Manual officer review required for ISO 45001 renewal endorsement and site safety plan.",
+                "evidence": best_snippet or f"Provisional HSE Document: {', '.join(cert_names)}",
+                "document_id": best_doc_id,
+                "document_name": best_doc_name,
+                "page_number": best_page_num,
+                "source": "HSE_SAFETY_ENGINE",
+                "method": "CERTIFICATION_AND_POLICY_VERIFIER",
+                "calculation_breakdown": {
+                    "certifications_verified": cert_names,
+                    "provisional_status": True,
+                    "requirement_met": False
+                }
+            }
+
         return {
             "status": "PASS",
             "confidence": 0.96,

@@ -48,6 +48,19 @@ class GSTPortalAdapter(GovernmentPortalAdapter):
             "return_filing_status": "COMPLIANT",
             "last_return_period": "2026-07",
             "filing_frequency": "Monthly (GSTR-1, GSTR-3B)"
+        },
+        "29AABCP1234M1Z5": {
+            "legal_name": "Praveen B S Engineering Services Private Limited",
+            "trade_name": "Praveen Engineering Services",
+            "gstin": "29AABCP1234M1Z5",
+            "pan": "AABCP1234M",
+            "registration_date": "2016-04-10",
+            "status": "ACTIVE",
+            "taxpayer_type": "Regular",
+            "principal_address": "Plot 18, Peenya Industrial Area, Bengaluru, Karnataka - 560058",
+            "return_filing_status": "COMPLIANT",
+            "last_return_period": "2026-07",
+            "filing_frequency": "Monthly (GSTR-1, GSTR-3B)"
         }
     }
 
